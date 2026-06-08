@@ -10419,7 +10419,9 @@ export function WorkCompletionReportForm({
     ...initialData,
   })
 
-  const handleSignatureChange = (key, type, value) => {
+  // useCallback prevents new function references on every render,
+  // which would trigger the SignatureBox useEffect infinitely
+  const handleSignatureChange = useCallback((key, type, value) => {
     setFormData((prev) => ({
       ...prev,
       signatures: {
@@ -10427,7 +10429,18 @@ export function WorkCompletionReportForm({
         [`${key}${type.charAt(0).toUpperCase() + type.slice(1)}`]: value,
       },
     }))
-  }
+  }, [])
+
+  // Stable callbacks for each SignatureBox to prevent infinite re-render loop
+  const handleVpesSignatureChange = useCallback(
+    (signature) => handleSignatureChange("vpes", "signature", signature),
+    [handleSignatureChange]
+  )
+
+  const handleCustomerSignatureChange = useCallback(
+    (signature) => handleSignatureChange("customer", "signature", signature),
+    [handleSignatureChange]
+  )
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -10798,7 +10811,7 @@ export function WorkCompletionReportForm({
                 label=""
                 nameValue=""
                 onNameChange={() => {}}
-                onSignatureChange={(signature) => handleSignatureChange("vpes", "signature", signature)}
+                onSignatureChange={handleVpesSignatureChange}
                 initialSignature={formData.signatures.vpesSignature}
               />
             </div>
@@ -10866,7 +10879,7 @@ export function WorkCompletionReportForm({
                 label=""
                 nameValue=""
                 onNameChange={() => {}}
-                onSignatureChange={(signature) => handleSignatureChange("customer", "signature", signature)}
+                onSignatureChange={handleCustomerSignatureChange}
                 initialSignature={formData.signatures.customerSignature}
               />
             </div>

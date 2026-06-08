@@ -14,6 +14,9 @@ const projectSchema = {
   submittedForms: { type: Map, of: Boolean, default: () => new Map() },
   jobRating: { type: String, default: "" },
   rejectionReason: { type: String, default: "" },
+  lastEventUser: { type: String, default: "" },
+  lastEventAction: { type: String, default: "" },
+  lastEventTimestamp: { type: Date, default: null },
 };
 
 const TestVConnectCompanySchema = new mongoose.Schema(

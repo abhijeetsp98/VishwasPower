@@ -24,10 +24,16 @@ export const setNewCompanyData = async (req, res) => {
 // Add a new project to exisiting company
 export const setCompanyData = async (req, res) => {
   try {
-    const { companyName, projectName, companyProjects } = req.body;
+    const { companyName, projectName, companyProjects, userName } = req.body;
+    const projectWithEvent = {
+      ...companyProjects,
+      lastEventUser: userName || "",
+      lastEventAction: "Project Created",
+      lastEventTimestamp: new Date(),
+    };
     const updatedCompany = await TractionCompany.findOneAndUpdate(
       { companyName: companyName },
-      { $push: { companyProjects: companyProjects }, updatedAt: Date.now() },
+      { $push: { companyProjects: projectWithEvent }, updatedAt: Date.now() },
       { new: true }
     );
     if (!updatedCompany) {
@@ -176,10 +182,14 @@ export const setapproveCompanyStage = async (req, res) => {
     }
 
     // ── Build update operation ──
+    const { userName: approveUserName } = req.body;
     const updateOperation = {
       $set: {
         [`companyProjects.$.stageApprovals.${stageNumber}`]: true,
         "companyProjects.$.formsCompleted": 0,
+        "companyProjects.$.lastEventUser": approveUserName || (req.user?.name || ""),
+        "companyProjects.$.lastEventAction": `Stage ${stageNumber} Approved`,
+        "companyProjects.$.lastEventTimestamp": new Date(),
       },
     };
 
@@ -235,12 +245,16 @@ export const rejectCompanyStage = async (req, res) => {
 
     console.log("Rejecting stage:", { companyName, projectName, stageNumber, rejectionReason });
 
+    const { userName: rejectUserName } = req.body;
     const updateOperation = {
       $set: {
-        [`companyProjects.$.stageApprovals.${stageNumber}`]: false, // explicitly false
-        [`companyProjects.$.submittedStages.${stageNumber}`]: false, // explicitly false
+        [`companyProjects.$.stageApprovals.${stageNumber}`]: false,
+        [`companyProjects.$.submittedStages.${stageNumber}`]: false,
         "companyProjects.$.status": "rejected",
         "companyProjects.$.rejectionReason": rejectionReason || "No reason provided",
+        "companyProjects.$.lastEventUser": rejectUserName || "",
+        "companyProjects.$.lastEventAction": `Stage ${stageNumber} Rejected`,
+        "companyProjects.$.lastEventTimestamp": new Date(),
       },
     };
 
@@ -318,6 +332,7 @@ export const editProjectName = async (req, res) => {
     }
 
     // Update the project name in the company's projects array
+    const { userName: renameUserName } = req.body;
     const updatedCompany = await TractionCompany.findOneAndUpdate(
       { 
         companyName: companyName,
@@ -326,6 +341,9 @@ export const editProjectName = async (req, res) => {
       { 
         $set: { 
           "companyProjects.$.name": newProjectName,
+          "companyProjects.$.lastEventUser": renameUserName || "",
+          "companyProjects.$.lastEventAction": "Project Renamed",
+          "companyProjects.$.lastEventTimestamp": new Date(),
           updatedAt: Date.now() 
         } 
       },
@@ -460,8 +478,12 @@ export const setFormsCompleted = async (req, res) => {
     // Only set the specific stage flag — do NOT overwrite the entire map.
     // This prevents race conditions where concurrent submissions corrupt other stages.
     const updateFields = {};
+    const { userName, eventAction } = req.body;
     const updateSets = {
       "companyProjects.$.lastActivity": new Date(),
+      "companyProjects.$.lastEventUser": userName || "",
+      "companyProjects.$.lastEventAction": eventAction || (stageNumber ? `Stage ${stageNumber} Submitted` : "Forms Updated"),
+      "companyProjects.$.lastEventTimestamp": new Date(),
     };
 
     updateFields["$max"] = {

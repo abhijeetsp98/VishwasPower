@@ -1825,6 +1825,7 @@ const ETCAdminPanel = ({
           projectName: ProjectName,
           companyName: CompanyName,
           companyProjects: newProject,
+          userName: user?.name || "",
         }
       );
       console.log("Project created successfully on the backend:", response.data);
@@ -2112,6 +2113,7 @@ const ETCAdminPanel = ({
           projectName: selectedProjectForReview.name,
           stage: rejectionStage.stage,
           rejectionReason,
+          userName: user?.name || "",
         }
       );
     } catch (error) {
@@ -2545,6 +2547,29 @@ const ETCAdminPanel = ({
         </table>
       </div>
 
+      {/* Last Event Info */}
+      {Project.lastEventAction && (
+        <div style={{
+          marginBottom: "16px",
+          padding: "6px 10px",
+          background: "#f0f9ff",
+          borderLeft: "3px solid #3b82f6",
+          borderRadius: "4px",
+          fontSize: "0.78rem",
+          color: "#374151",
+          lineHeight: "1.4",
+        }}>
+          📝 <strong>{Project.lastEventAction}</strong>
+          {Project.lastEventUser && <> by <strong>{Project.lastEventUser}</strong></>}
+          {Project.lastEventTimestamp && (
+            <> — {new Date(Project.lastEventTimestamp).toLocaleString("en-IN", {
+              day: "2-digit", month: "short", year: "numeric",
+              hour: "2-digit", minute: "2-digit"
+            })}</>
+          )}
+        </div>
+      )}
+
       {/* Test Buttons — tick marks driven by DB-backed Project.submittedForms */}
       {(() => {
         // submittedForms comes from MongoDB Map, serialised as a plain object
@@ -2773,6 +2798,7 @@ const ETCAdminPanel = ({
           companyName: editingProject.companyName,
           oldProjectName: editingProject.name,
           newProjectName: newProjectName.trim(),
+          userName: user?.name || "",
         },
         {
           headers: {
@@ -3732,6 +3758,28 @@ const ETCAdminPanel = ({
                       </span>
                       <span>📅 {Project.lastActivity}</span>
                     </div>
+
+                    {Project.lastEventAction && (
+                      <div style={{
+                        marginTop: "8px",
+                        padding: "6px 10px",
+                        background: "#f0f9ff",
+                        borderLeft: "3px solid #3b82f6",
+                        borderRadius: "4px",
+                        fontSize: "0.78rem",
+                        color: "#374151",
+                        lineHeight: "1.4",
+                      }}>
+                        📝 <strong>{Project.lastEventAction}</strong>
+                        {Project.lastEventUser && <> by <strong>{Project.lastEventUser}</strong></>}
+                        {Project.lastEventTimestamp && (
+                          <> — {new Date(Project.lastEventTimestamp).toLocaleString("en-IN", {
+                            day: "2-digit", month: "short", year: "numeric",
+                            hour: "2-digit", minute: "2-digit"
+                          })}</>
+                        )}
+                      </div>
+                    )}
 
                     <div className="stage-management">
                       <h4>Stage Management:</h4>

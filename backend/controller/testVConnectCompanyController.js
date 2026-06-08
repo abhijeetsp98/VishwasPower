@@ -24,10 +24,16 @@ export const setNewCompanyData = async (req, res) => {
 
 export const setCompanyData = async (req, res) => {
   try {
-    const { companyName, projectName, companyProjects } = req.body;
+    const { companyName, projectName, companyProjects, userName } = req.body;
+    const projectWithEvent = {
+      ...companyProjects,
+      lastEventUser: userName || "",
+      lastEventAction: "Project Created",
+      lastEventTimestamp: new Date(),
+    };
     const updatedCompany = await TestVConnectCompany.findOneAndUpdate(
       { companyName },
-      { $push: { companyProjects }, updatedAt: Date.now() },
+      { $push: { companyProjects: projectWithEvent }, updatedAt: Date.now() },
       { new: true }
     );
     if (!updatedCompany) {
@@ -103,10 +109,14 @@ export const setapproveCompanyStage = async (req, res) => {
     if (!companyName || !projectName || !stage) {
       return res.status(400).json({ message: "Company name, project name, and stage are required." });
     }
+    const { userName: approveUserName } = req.body;
     const updateOperation = {
       $set: {
         [`companyProjects.$.stageApprovals.${stageNumber}`]: true,
         "companyProjects.$.formsCompleted": 0,
+        "companyProjects.$.lastEventUser": approveUserName || "",
+        "companyProjects.$.lastEventAction": `Stage ${stageNumber} Approved`,
+        "companyProjects.$.lastEventTimestamp": new Date(),
       },
     };
     if (stageNumber !== 7) {
@@ -142,12 +152,16 @@ export const rejectCompanyStage = async (req, res) => {
     if (!companyName || !projectName || !stage) {
       return res.status(400).json({ message: "Company name, project name, and stage are required." });
     }
+    const { userName: rejectUserName } = req.body;
     const updateOperation = {
       $set: {
         [`companyProjects.$.stageApprovals.${stageNumber}`]: false,
         [`companyProjects.$.submittedStages.${stageNumber}`]: false,
         "companyProjects.$.status": "rejected",
         "companyProjects.$.rejectionReason": rejectionReason || "No reason provided",
+        "companyProjects.$.lastEventUser": rejectUserName || "",
+        "companyProjects.$.lastEventAction": `Stage ${stageNumber} Rejected`,
+        "companyProjects.$.lastEventTimestamp": new Date(),
       },
     };
     const updatedCompany = await TestVConnectCompany.findOneAndUpdate(
@@ -184,9 +198,17 @@ export const editProjectName = async (req, res) => {
     if (existingCompany.companyProjects.some((p) => p.name === newProjectName)) {
       return res.status(400).json({ message: `Project '${newProjectName}' already exists in company '${companyName}'` });
     }
+    const { userName: renameUserName } = req.body;
     const updatedCompany = await TestVConnectCompany.findOneAndUpdate(
       { companyName, "companyProjects.name": oldProjectName },
-      { $set: { "companyProjects.$.name": newProjectName, updatedAt: Date.now() } },
+      { $set: {
+          "companyProjects.$.name": newProjectName,
+          "companyProjects.$.lastEventUser": renameUserName || "",
+          "companyProjects.$.lastEventAction": "Project Renamed",
+          "companyProjects.$.lastEventTimestamp": new Date(),
+          updatedAt: Date.now()
+        }
+      },
       { new: true }
     );
     res.status(200).json({
@@ -230,7 +252,14 @@ export const setFormsCompleted = async (req, res) => {
   try {
     const { companyName, projectName, formsCompleted, status, stage } = req.body;
     const updateFields = {};
-    const updateSets = { "companyProjects.$.lastActivity": new Date() };
+    const { userName, eventAction } = req.body;
+    const stageNum = Number(stage);
+    const updateSets = {
+      "companyProjects.$.lastActivity": new Date(),
+      "companyProjects.$.lastEventUser": userName || "",
+      "companyProjects.$.lastEventAction": eventAction || (stageNum ? `Stage ${stageNum} Submitted` : "Forms Updated"),
+      "companyProjects.$.lastEventTimestamp": new Date(),
+    };
     updateFields["$max"] = { "companyProjects.$.formsCompleted": formsCompleted };
     if (status) updateSets["companyProjects.$.status"] = status;
     if (Number(stage) && 7) {

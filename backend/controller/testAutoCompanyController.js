@@ -37,10 +37,16 @@ export const setNewCompanyData = async (req, res) => {
 // Add a new project to existing TestAutoTransformerCompany
 export const setCompanyData = async (req, res) => {
   try {
-    const { companyName, projectName, companyProjects } = req.body;
+    const { companyName, projectName, companyProjects, userName } = req.body;
+    const projectWithEvent = {
+      ...companyProjects,
+      lastEventUser: userName || "",
+      lastEventAction: "Project Created",
+      lastEventTimestamp: new Date(),
+    };
     const updatedCompany = await TestAutoTransformerCompany.findOneAndUpdate(
       { companyName: companyName },
-      { $push: { companyProjects: companyProjects }, updatedAt: Date.now() },
+      { $push: { companyProjects: projectWithEvent }, updatedAt: Date.now() },
       { new: true }
     );
     if (!updatedCompany) {
@@ -142,10 +148,14 @@ export const setapproveCompanyStage = async (req, res) => {
       });
     }
 
+    const { userName: approveUserName } = req.body;
     const updateOperation = {
       $set: {
         [`companyProjects.$.stageApprovals.${stageNumber}`]: true,
         "companyProjects.$.formsCompleted": 0,
+        "companyProjects.$.lastEventUser": approveUserName || "",
+        "companyProjects.$.lastEventAction": `Stage ${stageNumber} Approved`,
+        "companyProjects.$.lastEventTimestamp": new Date(),
       },
     };
 
@@ -200,13 +210,16 @@ export const rejectCompanyStage = async (req, res) => {
       });
     }
 
+    const { userName: rejectUserName } = req.body;
     const updateOperation = {
       $set: {
         [`companyProjects.$.stageApprovals.${stageNumber}`]: false,
         [`companyProjects.$.submittedStages.${stageNumber}`]: false,
         "companyProjects.$.status": "rejected",
-        "companyProjects.$.rejectionReason":
-          rejectionReason || "No reason provided",
+        "companyProjects.$.rejectionReason": rejectionReason || "No reason provided",
+        "companyProjects.$.lastEventUser": rejectUserName || "",
+        "companyProjects.$.lastEventAction": `Stage ${stageNumber} Rejected`,
+        "companyProjects.$.lastEventTimestamp": new Date(),
       },
     };
 
@@ -276,6 +289,7 @@ export const editProjectName = async (req, res) => {
       });
     }
 
+    const { userName: renameUserName } = req.body;
     const updatedCompany = await TestAutoTransformerCompany.findOneAndUpdate(
       {
         companyName: companyName,
@@ -284,6 +298,9 @@ export const editProjectName = async (req, res) => {
       {
         $set: {
           "companyProjects.$.name": newProjectName,
+          "companyProjects.$.lastEventUser": renameUserName || "",
+          "companyProjects.$.lastEventAction": "Project Renamed",
+          "companyProjects.$.lastEventTimestamp": new Date(),
           updatedAt: Date.now(),
         },
       },
@@ -351,8 +368,13 @@ export const setFormsCompleted = async (req, res) => {
     const { companyName, projectName, formsCompleted, status, stage } = req.body;
 
     const updateFields = {};
+    const { userName, eventAction } = req.body;
+    const stageNumber = Number(stage);
     const updateSets = {
       "companyProjects.$.lastActivity": new Date(),
+      "companyProjects.$.lastEventUser": userName || "",
+      "companyProjects.$.lastEventAction": eventAction || (stageNumber ? `Stage ${stageNumber} Submitted` : "Forms Updated"),
+      "companyProjects.$.lastEventTimestamp": new Date(),
     };
     updateFields["$max"] = {
       "companyProjects.$.formsCompleted": formsCompleted,

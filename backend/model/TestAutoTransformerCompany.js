@@ -54,6 +54,18 @@ const projectSchema = {
     type: String,
     default: "",
   },
+  lastEventUser: {
+    type: String,
+    default: "",
+  },
+  lastEventAction: {
+    type: String,
+    default: "",
+  },
+  lastEventTimestamp: {
+    type: Date,
+    default: null,
+  },
 };
 
 const TestAutoTransformerCompanySchema = new mongoose.Schema(
