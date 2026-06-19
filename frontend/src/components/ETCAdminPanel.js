@@ -3722,16 +3722,50 @@ const ETCAdminPanel = ({
                       >
                         🏢
                       </div>
-                      <span
-                        className={`status-badge ${getStatusColor(
-                          Project.status
-                        )}`}
-                      >
-                        {Project.status === "pending-approval" && "⏳"}
-                        {Project.status === "in-progress" && "🔄"}
-                        {Project.status === "completed" && "✅"}
-                        {Project.status}
-                      </span>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
+                        <span
+                          className={`status-badge ${getStatusColor(
+                            Project.status
+                          )}`}
+                        >
+                          {Project.status === "pending-approval" && "⏳"}
+                          {Project.status === "in-progress" && "🔄"}
+                          {Project.status === "completed" && "✅"}
+                          {Project.status}
+                        </span>
+                        {Project.lastEventUser && (
+                          <div style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "flex-end",
+                            gap: "2px",
+                          }}>
+                            <span style={{
+                              fontSize: "0.72rem",
+                              color: "#6b7280",
+                              fontWeight: "500",
+                              whiteSpace: "nowrap",
+                            }}>
+                              👤 Last Submitted: <strong style={{ color: "#1e3a8a" }}>{Project.lastEventUser}</strong>
+                            </span>
+                            {Project.lastEventTimestamp && (
+                              <span style={{
+                                fontSize: "0.68rem",
+                                color: "#9ca3af",
+                                whiteSpace: "nowrap",
+                              }}>
+                                🕐 {new Date(Project.lastEventTimestamp).toLocaleString("en-IN", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <h3>{Project.name}</h3>
                     <p>

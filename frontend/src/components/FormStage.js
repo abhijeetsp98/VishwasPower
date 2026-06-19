@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import "./form-styles.css";
 import axios from "axios";
 import { CLOUD_NAME, CLOUD_PRESET, BACKEND_API_BASE_URL, additionalLogging } from "./constant";
+import { getUserInfo } from "../utils/auth";
 
 const FormStage = ({
   setSelectedMainCompany,
@@ -288,6 +289,10 @@ const FormStage = ({
       }
 
       // 🔹 formsCompleted + project status logic
+      const userInfo = getUserInfo();
+      const userName = userInfo?.name || "";
+      const now = new Date().toISOString();
+
       if (isLastFormOfStage) {
         await axios.post(
           `${BACKEND_API_BASE_URL}/api/autocompany/updateFormsCompleted`,
@@ -297,6 +302,8 @@ const FormStage = ({
             formsCompleted: currentFormIndex + 1,
             status: "pending-approval",
             stage,
+            userName,
+            eventAction: `Stage ${stage} Submitted`,
           }
         );
 
@@ -314,6 +321,10 @@ const FormStage = ({
                     ...project,
                     submittedStages: submittedStagesMap,
                     status: "pending-approval",
+                    formsCompleted: currentFormIndex + 1,
+                    lastEventUser: userName,
+                    lastEventAction: `Stage ${stage} Submitted`,
+                    lastEventTimestamp: now,
                   };
                 }
                 return project;
@@ -329,8 +340,31 @@ const FormStage = ({
             projectName,
             companyName,
             formsCompleted: currentFormIndex + 1,
+            userName,
+            eventAction: "Forms Updated",
           }
         );
+
+        setSelectedMainCompany((prevCompany) => {
+          if (prevCompany.companyName === companyName) {
+            return {
+              ...prevCompany,
+              companyProjects: prevCompany.companyProjects.map((project) => {
+                if (project.name === projectName) {
+                  return {
+                    ...project,
+                    formsCompleted: currentFormIndex + 1,
+                    lastEventUser: userName,
+                    lastEventAction: "Forms Updated",
+                    lastEventTimestamp: now,
+                  };
+                }
+                return project;
+              }),
+            };
+          }
+          return prevCompany;
+        });
       }
     } catch (error) {
       console.error("Error saving form:", error);
