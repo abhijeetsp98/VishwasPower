@@ -14,36 +14,24 @@ import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// 🔹 Multer storage with custom filename
+// 🔹 Multer storage with nested folder: uploads/TractionTransformer/{Company}/{Project}/
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadPath = "uploads/";
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
+    const companyName = (req.body.companyName || "Company")
+      .replace(/\s+/g, "_").replace(/[/\\]/g, "-");
+    const projectName = (req.body.projectName || "Project")
+      .replace(/\s+/g, "_").replace(/[/\\]/g, "-");
+    const uploadPath = `uploads/TractionTransformer/${companyName}/${projectName}/`;
+    fs.mkdirSync(uploadPath, { recursive: true });
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
     const match = file.fieldname.match(/photos\[(.+)\]/);
     const photoKey = match ? match[1] : "Photo";
-
-    const companyName = (req.body.companyName || "Company").replace(
-      /\s+/g,
-      "_"
-    );
-    const projectName = (req.body.projectName || "Project").replace(
-      /\s+/g,
-      "_"
-    );
     const stage = req.body.stage ? `Stage${req.body.stage}` : "Stage";
-    const formNumber = req.body.formNumber
-      ? `Form${req.body.formNumber}`
-      : "Form";
-
+    const formNumber = req.body.formNumber ? `Form${req.body.formNumber}` : "Form";
     const ext = path.extname(file.originalname);
-    const fileName = `${companyName}_${projectName}_${stage}_${formNumber}_${photoKey}${ext}`;
-
-    cb(null, fileName);
+    cb(null, `${stage}_${formNumber}_${photoKey}${ext}`);
   },
 });
 

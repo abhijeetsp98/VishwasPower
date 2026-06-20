@@ -3,8 +3,41 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import "./form-styles.css";
 import axios from "axios";
-import { CLOUD_NAME, CLOUD_PRESET, BACKEND_API_BASE_URL, additionalLogging } from "./constant";
+import { BACKEND_API_BASE_URL, additionalLogging, ENABLE_IMAGE_COMPRESSION, IMAGE_COMPRESSION_MAX_WIDTH, IMAGE_COMPRESSION_QUALITY } from "./constant";
 import { getUserInfo } from "../utils/auth";
+
+// ─── Image compression utility (runs in browser, no library needed) ──────────
+const compressImage = (file, maxWidth, quality) => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          const compressedFile = new File(
+            [blob],
+            file.name.replace(/\.[^.]+$/, ".jpg"),
+            { type: "image/jpeg" }
+          );
+          resolve(compressedFile);
+        },
+        "image/jpeg",
+        quality
+      );
+    };
+    img.onerror = () => resolve(file); // fallback: use original if compression fails
+    img.src = URL.createObjectURL(file);
+  });
+};
 
 const FormStage = ({
   setSelectedMainCompany,
@@ -182,111 +215,51 @@ const FormStage = ({
       console.log("Frontend: handleFormSubmit → saving form data");
     }
 
-    // Image upload section - Handle multiple images with completely separate requests
-    const uploadedImageURLs = {};
-    
-    if (data.photos && Object.keys(data.photos).length > 0) {
-      // Process each image individually with staggered timing to ensure they are completely different requests
-      for (const [photoKey, file] of Object.entries(data.photos)) {
-        if (file instanceof File) {
-          try {
-            // Create completely unique FormData for each image
-            const imgData = new FormData();
-            
-            // Create highly unique filename with multiple identifiers
-            const timestamp = Date.now();
-            const randomId = Math.random().toString(36).substring(2, 15);
-            const microTime = performance.now().toString().replace('.', '');
-            const fileName = `stage_${stage}_form_${currentFormIndex + 1}_${photoKey}_${timestamp}_${randomId}_${microTime}`;
-            
-            imgData.append("file", file);
-            imgData.append("upload_preset", CLOUD_PRESET);
-            imgData.append("cloud_name", CLOUD_NAME);
-            imgData.append("public_id", fileName);
-            
-            // Add significant delay between each request to prevent combination
-            if (Object.keys(uploadedImageURLs).length > 0) {
-              await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
-            }
-            
-            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-              method: "POST",
-              body: imgData,
-              
-            });
-            
-            const uploadImageURL = await res.json();
-            
-            if (uploadImageURL.secure_url) {
-              uploadedImageURLs[photoKey] = uploadImageURL.secure_url;
-              console.log(`Successfully uploaded ${photoKey} with unique filename ${fileName}:`, uploadImageURL.secure_url);
-            } else {
-              console.error(`Failed to upload ${photoKey}:`, uploadImageURL);
-              throw new Error(`Upload failed for ${photoKey}`);
-            }
-          } catch (error) {
-            console.error(`Error uploading ${photoKey}:`, error);
-            // Continue with other uploads even if one fails
-          }
-        }
-      }
-      
-      console.log(`Completed ${Object.keys(uploadedImageURLs).length} separate image uploads`);
-    }
-
-    // Prepare data for backend (completely separate from images)
+    // Prepare data for backend
     const formDataForBackend = { ...data };
-    delete formDataForBackend.photos; // Ensure no photo data in form submission
+    delete formDataForBackend.photos;
 
     const updatedFormData = { ...formData, [currentForm.form]: formDataForBackend };
 
     try {
-      // 🔹 Send form data to data backend (completely separate from images)
-      const dataToSend = {
-        projectName,
-        companyName,
-        stage,
-        formNumber: currentFormIndex + 1,
-        ...formDataForBackend
-      };
+      // 🔹 Build a single multipart/form-data request with form fields + photos
+      const multipartData = new FormData();
+      multipartData.append("projectName", projectName);
+      multipartData.append("companyName", companyName);
+      multipartData.append("stage", String(stage));
+      multipartData.append("formNumber", String(currentFormIndex + 1));
 
-      // 🔹 POST request to data backend - separate from image uploads
+      // Append all non-photo form fields
+      for (const [key, value] of Object.entries(formDataForBackend)) {
+        if (value !== undefined && value !== null) {
+          multipartData.append(
+            key,
+            typeof value === "object" ? JSON.stringify(value) : String(value)
+          );
+        }
+      }
+
+      // Append photos — compress if flag is enabled
+      if (data.photos && Object.keys(data.photos).length > 0) {
+        for (const [photoKey, file] of Object.entries(data.photos)) {
+          if (file instanceof File) {
+            const fileToUpload = ENABLE_IMAGE_COMPRESSION
+              ? await compressImage(file, IMAGE_COMPRESSION_MAX_WIDTH, IMAGE_COMPRESSION_QUALITY)
+              : file;
+            multipartData.append(`photos[${photoKey}]`, fileToUpload);
+            if (additionalLogging) {
+              console.log(`Photo "${photoKey}": ${(file.size / 1024).toFixed(0)} KB → ${(fileToUpload.size / 1024).toFixed(0)} KB`);
+            }
+          }
+        }
+      }
+
+      // 🔹 Single POST to backend — multer handles file storage on VPS
       await axios.post(
         `${BACKEND_API_BASE_URL}/api/autoData/setTable`,
-        dataToSend,
-        {
-          headers: { 
-            "Content-Type": "application/json",
-            "X-Request-Type": "form-data-only"
-          },
-        }
+        multipartData,
+        { headers: { "Content-Type": "multipart/form-data" } }
       );
-
-      // 🔹 If there are uploaded images, store them in the main form data AND send to separate endpoint
-      if (Object.keys(uploadedImageURLs).length > 0) {
-        // First, update the main form data with image URLs so they're stored in the main database
-        const formDataWithImages = {
-          projectName,
-          companyName,
-          stage,
-          formNumber: currentFormIndex + 1,
-          photos: uploadedImageURLs,
-          ...formDataForBackend
-        };
-
-        // Update the main form data to include photos
-        await axios.post(
-          `${BACKEND_API_BASE_URL}/api/autoData/setTable`,
-          formDataWithImages,
-          {
-            headers: { 
-              "Content-Type": "application/json",
-              "X-Request-Type": "form-data-with-images"
-            },
-          }
-        );
-
-      }
 
       // 🔹 formsCompleted + project status logic
       const userInfo = getUserInfo();

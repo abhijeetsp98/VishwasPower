@@ -1,6 +1,27 @@
 import express from "express";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import AutoTransformerCompany from "../model/AutoTransformerCompany.js";
 import AutoTransformer from "../model/AutoTransformer.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Helper: sanitize name for folder path (same logic as multer)
+const sanitizeName = (name) => name.replace(/\s+/g, "_").replace(/[/\\]/g, "-");
+
+// Helper: delete a folder and all its contents silently
+const deleteFolder = (folderPath) => {
+  try {
+    if (fs.existsSync(folderPath)) {
+      fs.rmSync(folderPath, { recursive: true, force: true });
+      console.log(`Deleted folder: ${folderPath}`);
+    }
+  } catch (err) {
+    console.error(`Failed to delete folder ${folderPath}:`, err.message);
+  }
+};
 
 const router = express.Router();
 
@@ -107,6 +128,13 @@ export const deleteProjectByName = async (req, res) => {
       // Don't fail the entire operation if AutoTransformer deletion fails
     }
 
+    // Delete photo folder for this project
+    const projectFolder = path.join(
+      __dirname, "..", "uploads", "AutoTransformer",
+      sanitizeName(companyName), sanitizeName(projectName)
+    );
+    deleteFolder(projectFolder);
+
     res.status(200).json({
       message: `Project '${projectName}' deleted successfully from company '${companyName}' and associated AutoTransformer data.`,
       company: updatedCompany,
@@ -134,6 +162,13 @@ export const deleteCompanyByName = async (req, res) => {
         message: `Company '${companyName}' not found.`,
       });
     }
+
+    // Delete entire photo folder for this company
+    const companyFolder = path.join(
+      __dirname, "..", "uploads", "AutoTransformer",
+      sanitizeName(companyName)
+    );
+    deleteFolder(companyFolder);
 
     res.status(200).json({
       message: `Company '${companyName}' deleted successfully.`,
