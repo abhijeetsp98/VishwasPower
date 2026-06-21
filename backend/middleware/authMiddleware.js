@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { Types } from 'mongoose';
 import User from '../model/User.js';
 
 export const protect = async (req, res, next) => {
@@ -7,7 +8,20 @@ export const protect = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findOne({ _id: decoded.id }).select('-password');
+
+    // Try string _id first (handles migrated data where _id is stored as string)
+    let userDoc = await User.collection.findOne({ _id: decoded.id });
+
+    // If not found, try ObjectId (handles new users where _id is a proper ObjectId)
+    if (!userDoc) {
+      try {
+        userDoc = await User.collection.findOne({ _id: new Types.ObjectId(decoded.id) });
+      } catch (e) {
+        // decoded.id is not a valid ObjectId format — leave userDoc as null
+      }
+    }
+
+    req.user = userDoc || null;
     next();
   } catch (err) {
     res.status(401).json({ message: 'Not authorized, token failed' });
