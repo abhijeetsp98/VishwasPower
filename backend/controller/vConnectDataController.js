@@ -54,8 +54,9 @@ export const getStageTableData = async (req, res) => {
         message: `Data for stage ${stage} not found.`,
       })
     }
-    // 🔹 Build base URL dynamically
-    const baseUrl = `${req.protocol}://${req.get("host")}`
+    // 🔹 Build base URL dynamically (use x-forwarded-proto for nginx/SSL proxy)
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const baseUrl = `${protocol}://${req.get("host")}`;
 
     // 🔹 Recursively convert any "photos" map values to full URLs
     const convertPhotoPathsToUrls = (data) => {
@@ -195,7 +196,8 @@ export const setTableData = async (req, res) => {
         const match = file.fieldname.match(/photos\[(.+)\]/)
         if (match) {
           const key = match[1]
-          photos[key] = `uploads/${file.filename}`
+          // Use file.path which includes the full relative path (e.g. uploads/VConnectTransformer/Company/Project/filename.jpg)
+          photos[key] = file.path.replace(/\\/g, '/')
         }
       })
     }
