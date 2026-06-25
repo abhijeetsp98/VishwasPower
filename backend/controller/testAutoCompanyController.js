@@ -156,6 +156,8 @@ export const setapproveCompanyStage = async (req, res) => {
         "companyProjects.$.lastEventUser": approveUserName || "",
         "companyProjects.$.lastEventAction": `Stage ${stageNumber} Approved`,
         "companyProjects.$.lastEventTimestamp": new Date(),
+        "companyProjects.$.lastApprovedUser": approveUserName || "",
+        "companyProjects.$.lastApprovedTimestamp": new Date(),
       },
     };
 
@@ -375,6 +377,8 @@ export const setFormsCompleted = async (req, res) => {
       "companyProjects.$.lastEventUser": userName || "",
       "companyProjects.$.lastEventAction": eventAction || (stageNumber ? `Stage ${stageNumber} Submitted` : "Forms Updated"),
       "companyProjects.$.lastEventTimestamp": new Date(),
+      "companyProjects.$.lastSubmittedUser": userName || "",
+      "companyProjects.$.lastSubmittedTimestamp": new Date(),
     };
     updateFields["$max"] = {
       "companyProjects.$.formsCompleted": formsCompleted,

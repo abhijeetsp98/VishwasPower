@@ -57,6 +57,22 @@ const projectSchema = {
     type: Date,
     default: null,
   },
+  lastSubmittedUser: {
+    type: String,
+    default: "",
+  },
+  lastSubmittedTimestamp: {
+    type: Date,
+    default: null,
+  },
+  lastApprovedUser: {
+    type: String,
+    default: "",
+  },
+  lastApprovedTimestamp: {
+    type: Date,
+    default: null,
+  },
 };
 
 const TractionCompanySchema = new mongoose.Schema(

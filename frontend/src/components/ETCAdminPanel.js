@@ -3738,7 +3738,7 @@ const ETCAdminPanel = ({
                           {Project.status === "completed" && "✅"}
                           {Project.status}
                         </span>
-                        {Project.lastEventUser && (
+                        {Project.lastSubmittedUser && (
                           <div style={{
                             display: "flex",
                             flexDirection: "column",
@@ -3751,15 +3751,48 @@ const ETCAdminPanel = ({
                               fontWeight: "500",
                               whiteSpace: "nowrap",
                             }}>
-                              👤 Last Submitted: <strong style={{ color: "#1e3a8a" }}>{Project.lastEventUser}</strong>
+                              👤 Last Submitted: <strong style={{ color: "#1e3a8a" }}>{Project.lastSubmittedUser}</strong>
                             </span>
-                            {Project.lastEventTimestamp && (
+                            {Project.lastSubmittedTimestamp && (
                               <span style={{
                                 fontSize: "0.68rem",
                                 color: "#9ca3af",
                                 whiteSpace: "nowrap",
                               }}>
-                                🕐 {new Date(Project.lastEventTimestamp).toLocaleString("en-IN", {
+                                🕐 {new Date(Project.lastSubmittedTimestamp).toLocaleString("en-IN", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {Project.lastApprovedUser && (
+                          <div style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "flex-end",
+                            gap: "2px",
+                            marginTop: "4px",
+                          }}>
+                            <span style={{
+                              fontSize: "0.72rem",
+                              color: "#6b7280",
+                              fontWeight: "500",
+                              whiteSpace: "nowrap",
+                            }}>
+                              ✅ Last Approved: <strong style={{ color: "#059669" }}>{Project.lastApprovedUser}</strong>
+                            </span>
+                            {Project.lastApprovedTimestamp && (
+                              <span style={{
+                                fontSize: "0.68rem",
+                                color: "#9ca3af",
+                                whiteSpace: "nowrap",
+                              }}>
+                                🕐 {new Date(Project.lastApprovedTimestamp).toLocaleString("en-IN", {
                                   day: "2-digit",
                                   month: "short",
                                   year: "numeric",

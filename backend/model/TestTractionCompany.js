@@ -17,6 +17,10 @@ const projectSchema = {
   lastEventUser: { type: String, default: "" },
   lastEventAction: { type: String, default: "" },
   lastEventTimestamp: { type: Date, default: null },
+  lastSubmittedUser: { type: String, default: "" },
+  lastSubmittedTimestamp: { type: Date, default: null },
+  lastApprovedUser: { type: String, default: "" },
+  lastApprovedTimestamp: { type: Date, default: null },
 };
 
 const TestTractionCompanySchema = new mongoose.Schema(
