@@ -3597,7 +3597,12 @@ const ETCAdminPanel = ({
                       <span>
                         🏢 {Company?.companyProjects?.length} companies
                       </span>
-                      <span>📅 {Company.createdAt}</span>
+                      <span>📅 {Company.createdAt
+                        ? new Date(Company.createdAt).toLocaleDateString("en-IN", {
+                            day: "2-digit", month: "short", year: "numeric"
+                          })
+                        : "N/A"
+                      }</span>
                     </div>
                     <div
                       className="Company-actions"
@@ -3791,9 +3796,8 @@ const ETCAdminPanel = ({
                         % complete
                       </span>
                       <span>📅 {Project.lastActivity
-                        ? new Date(Project.lastActivity).toLocaleString("en-IN", {
-                            day: "2-digit", month: "short", year: "numeric",
-                            hour: "2-digit", minute: "2-digit"
+                        ? new Date(Project.lastActivity).toLocaleDateString("en-IN", {
+                            day: "2-digit", month: "short", year: "numeric"
                           })
                         : "N/A"
                       }</span>

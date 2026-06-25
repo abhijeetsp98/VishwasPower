@@ -293,7 +293,12 @@ const SiteEngineerDashboard = ({ user, selectedProject, onLogout, onProjectSelec
                     <p>{project.description}</p>
                     <div className="project-footer">
                       <span>🏢 {projectCompanies.length} companies</span>
-                      <span>📅 {project.createdAt}</span>
+                      <span>📅 {project.createdAt
+                        ? new Date(project.createdAt).toLocaleDateString("en-IN", {
+                            day: "2-digit", month: "short", year: "numeric"
+                          })
+                        : "N/A"
+                      }</span>
                     </div>
                   </div>
                 )
@@ -340,7 +345,12 @@ const SiteEngineerDashboard = ({ user, selectedProject, onLogout, onProjectSelec
                     </div>
                     <div className="company-footer">
                       <span>📊 {Math.round((company.formsCompleted / company.totalForms) * 100)}% complete</span>
-                      <span>📅 {company.lastActivity}</span>
+                      <span>📅 {company.lastActivity
+                        ? new Date(company.lastActivity).toLocaleDateString("en-IN", {
+                            day: "2-digit", month: "short", year: "numeric"
+                          })
+                        : "N/A"
+                      }</span>
                     </div>
 
                     <div className="company-actions" style={{ marginTop: "15px", textAlign: "center" }}>
