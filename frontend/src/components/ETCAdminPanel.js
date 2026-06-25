@@ -2341,7 +2341,27 @@ const ETCAdminPanel = ({
 
     setSubmittedForms((prev) => [...prev, newFormEntry]);
 
-    // Update Project to show forms submitted and pending approval
+    // ✅ Immediately update lastSubmittedUser so the card shows it without reload
+    if (formStageProject) {
+      const submittedProjectName = formStageProject.name;
+      const submittedCompanyName = formStageProject.companyName;
+      setSelectedMainCompany((prevCompany) => ({
+        ...prevCompany,
+        companyProjects: (prevCompany?.companyProjects || []).map((project) => {
+          if (
+            project.name === submittedProjectName &&
+            project.companyName === submittedCompanyName
+          ) {
+            return {
+              ...project,
+              lastSubmittedUser: user?.name || "",
+              lastSubmittedTimestamp: new Date().toISOString(),
+            };
+          }
+          return project;
+        }),
+      }));
+    }
 
     showNotification(
       `Forms for Stage ${stage} submitted successfully! Waiting for ETC Admin approval.`,

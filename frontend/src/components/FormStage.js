@@ -298,6 +298,8 @@ const FormStage = ({
                     lastEventUser: userName,
                     lastEventAction: `Stage ${stage} Submitted`,
                     lastEventTimestamp: now,
+                    lastSubmittedUser: userName,
+                    lastSubmittedTimestamp: now,
                   };
                 }
                 return project;
@@ -330,6 +332,8 @@ const FormStage = ({
                     lastEventUser: userName,
                     lastEventAction: "Forms Updated",
                     lastEventTimestamp: now,
+                    lastSubmittedUser: userName,
+                    lastSubmittedTimestamp: now,
                   };
                 }
                 return project;

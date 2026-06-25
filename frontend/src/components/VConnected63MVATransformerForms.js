@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import "./form-styles.css"
 import axios from "axios"
 import { BACKEND_API_BASE_URL } from "./constant"
+import { getUserInfo } from "../utils/auth"
 
 // Signature Canvas Hook
 const useSignatureCanvas = (initialDataUrl) => {
@@ -11458,6 +11459,8 @@ const VConnected63MVATransformerForms = ({
                       ...project,
                       submittedStages: submittedStagesMap,
                       status: "pending-approval",
+                      lastSubmittedUser: getUserInfo()?.name || "",
+                      lastSubmittedTimestamp: new Date().toISOString(),
                     };
                   }
                   return project;
@@ -11476,6 +11479,28 @@ const VConnected63MVATransformerForms = ({
             formsCompleted: currentFormIndex + 1,
           }
         );
+
+        // Update lastSubmittedUser for individual form saves
+        if (setSelectedMainCompany) {
+          setSelectedMainCompany((prevCompany) => {
+            if (prevCompany.companyName === companyName) {
+              return {
+                ...prevCompany,
+                companyProjects: prevCompany.companyProjects.map((project) => {
+                  if (project.name === projectName) {
+                    return {
+                      ...project,
+                      lastSubmittedUser: getUserInfo()?.name || "",
+                      lastSubmittedTimestamp: new Date().toISOString(),
+                    };
+                  }
+                  return project;
+                }),
+              };
+            }
+            return prevCompany;
+          });
+        }
       }
     } catch (error) {
       console.error("Error saving form:", error);
