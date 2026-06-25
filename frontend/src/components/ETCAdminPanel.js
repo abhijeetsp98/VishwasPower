@@ -3790,7 +3790,13 @@ const ETCAdminPanel = ({
                         )}
                         % complete
                       </span>
-                      <span>📅 {Project.lastActivity}</span>
+                      <span>📅 {Project.lastActivity
+                        ? new Date(Project.lastActivity).toLocaleString("en-IN", {
+                            day: "2-digit", month: "short", year: "numeric",
+                            hour: "2-digit", minute: "2-digit"
+                          })
+                        : "N/A"
+                      }</span>
                     </div>
 
                     {Project.lastEventAction && (
