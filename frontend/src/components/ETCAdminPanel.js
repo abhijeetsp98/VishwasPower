@@ -2053,6 +2053,8 @@ const ETCAdminPanel = ({
               ...project.stageApprovals,
               [currentStage]: true,
             },
+            lastApprovedUser: user?.name || "",
+            lastApprovedTimestamp: new Date().toISOString(),
           };
         }
         return project;
