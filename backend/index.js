@@ -63,6 +63,14 @@ app.use("/api/test_vconnectcompany", TestVConnectCompanyRoute);
 app.use("/api/test_vconnectData/", TestVConnectDataRoute);
 
 const PORT = process.env.PORT || 7000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`✅ Server is running on http://localhost:${PORT}`);
 });
+
+// Fix for net::ERR_CONNECTION_RESET on VPS with Nginx reverse proxy.
+// Node.js default keepAliveTimeout is 5s, but Nginx's keepalive_timeout is 75s.
+// When Nginx reuses a keep-alive connection that Node.js has already closed,
+// Node.js resets it → ERR_CONNECTION_RESET. Setting these values higher than
+// Nginx's keepalive_timeout prevents the mismatch.
+server.keepAliveTimeout = 120 * 1000; // 120 seconds (must be > Nginx keepalive_timeout of 75s)
+server.headersTimeout = 125 * 1000;   // 125 seconds (must be > keepAliveTimeout)
