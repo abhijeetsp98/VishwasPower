@@ -51,6 +51,7 @@ const FormStage = ({
 }) => {
   const [currentFormIndex, setCurrentFormIndex] = useState(0);
   const [formData, setFormData] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const StageSchemas = {
     Stage1: {
@@ -211,6 +212,10 @@ const FormStage = ({
   const isLastFormOfStage = currentFormIndex === currentForms.length - 1;
 
   const handleFormSubmit = async (data) => {
+    // Prevent double-submission if a request is already in flight
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     if (additionalLogging) {
       console.log("Frontend: handleFormSubmit → saving form data");
     }
@@ -346,8 +351,11 @@ const FormStage = ({
     } catch (error) {
       console.error("Error saving form:", error);
       alert("Failed to save form. Please try again.");
+      setIsSubmitting(false);
       return;
     }
+
+    setIsSubmitting(false);
 
     // 🔹 Local update + move forward
     setFormData(updatedFormData);
@@ -382,6 +390,44 @@ const FormStage = ({
 
   return (
     <div className="form-stage-container fade-in">
+      {/* Loading overlay — blocks all interaction while a form is being saved */}
+      {isSubmitting && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.45)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "not-allowed",
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              padding: "30px 40px",
+              borderRadius: "12px",
+              textAlign: "center",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
+              minWidth: "220px",
+            }}
+          >
+            <div style={{ fontSize: "2rem", marginBottom: "10px" }}>⏳</div>
+            <p style={{ margin: 0, fontWeight: "600", color: "#374151", fontSize: "1rem" }}>
+              Saving form data…
+            </p>
+            <p style={{ margin: "6px 0 0", fontSize: "0.85rem", color: "#6b7280" }}>
+              Please wait
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="form-header">
         <div className="form-progress">
           <h2>
