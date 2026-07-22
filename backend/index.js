@@ -69,8 +69,8 @@ app.use("/api/volttrack", voltTrackRoutes);
 // Serve VoltTrack Vite app as static files at /volttrack
 const voltTrackPath = path.join(__dirname, "public", "volttrack");
 app.use("/volttrack", express.static(voltTrackPath));
-// SPA catch-all: any /volttrack/* route serves index.html
-app.get("/volttrack/*", (req, res) => {
+// SPA catch-all: any /volttrack/* route serves index.html (Express v5 uses /*splat)
+app.get("/volttrack/*splat", (req, res) => {
   res.sendFile(path.join(voltTrackPath, "index.html"));
 });
 
