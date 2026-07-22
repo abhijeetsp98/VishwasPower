@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 
-const MainAdminDashboard = ({ user, onLogout, onSelectAdmin }) => {
+const MainAdminDashboard = ({ user, onLogout, onSelectAdmin, onOpenVoltTrack }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [departments, setDepartments] = useState([])
   const [newDepartment, setNewDepartment] = useState("")
@@ -190,6 +190,36 @@ const MainAdminDashboard = ({ user, onLogout, onSelectAdmin }) => {
         <div className="dashboard-title">
           <h2>Admin Panels</h2>
           <p>Select an admin panel to manage specific operations</p>
+        </div>
+
+        {/* Testing Department Quick Access */}
+        <div style={{ marginBottom: 24 }}>
+          <button
+            onClick={onOpenVoltTrack}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              background: 'linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%)',
+              color: 'white',
+              border: 'none',
+              padding: '16px 28px',
+              borderRadius: 12,
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(29,78,216,0.35)',
+              transition: 'all 0.2s',
+              letterSpacing: '0.03em',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+          >
+            🔬 Testing Department
+            <span style={{ fontSize: 12, fontWeight: 500, opacity: 0.85, marginLeft: 4 }}>
+              — VoltTrack Transformer Testing Manager
+            </span>
+          </button>
         </div>
 
         <div className="admin-panels-grid">

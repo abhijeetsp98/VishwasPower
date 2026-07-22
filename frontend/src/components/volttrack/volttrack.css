@@ -1,0 +1,711 @@
+/* VoltTrack Testing Department Styles */
+
+.vt-app {
+  min-height: 100vh;
+  background: #f1f5f9;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+/* ── Header ── */
+.vt-header {
+  background: #0f172a;
+  color: white;
+  padding: 0 24px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.vt-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vt-header-logo {
+  height: 32px;
+  object-fit: contain;
+}
+
+.vt-header-title {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #e2e8f0;
+}
+
+.vt-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vt-role-badge {
+  background: #1e3a5f;
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.vt-back-btn {
+  background: #1e293b;
+  color: #94a3b8;
+  border: 1px solid #334155;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.vt-back-btn:hover {
+  background: #334155;
+  color: white;
+}
+
+/* ── Main Content ── */
+.vt-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+/* ── Page Title ── */
+.vt-page-title {
+  margin-bottom: 28px;
+}
+
+.vt-page-title h2 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.vt-page-title p {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+/* ── Cards ── */
+.vt-card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+
+.vt-card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+}
+
+.vt-card-header h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.vt-card-body {
+  padding: 20px;
+}
+
+/* ── Buttons ── */
+.vt-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+}
+
+.vt-btn-primary {
+  background: #2563eb;
+  color: white;
+}
+
+.vt-btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.vt-btn-danger {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.vt-btn-danger:hover {
+  background: #fecaca;
+}
+
+.vt-btn-ghost {
+  background: transparent;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.vt-btn-ghost:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.vt-btn-success {
+  background: #dcfce7;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.vt-btn-success:hover {
+  background: #bbf7d0;
+}
+
+.vt-btn-sm {
+  padding: 5px 10px;
+  font-size: 11px;
+}
+
+.vt-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Job List ── */
+.vt-job-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.vt-job-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.vt-job-card:hover {
+  border-color: #2563eb;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.1);
+  transform: translateY(-1px);
+}
+
+.vt-job-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.vt-job-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.vt-job-meta {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.vt-job-status {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.vt-job-status.processing {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.vt-job-status.completed {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.vt-job-progress {
+  margin-top: 12px;
+}
+
+.vt-progress-bar-bg {
+  height: 4px;
+  background: #f1f5f9;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.vt-progress-bar-fill {
+  height: 100%;
+  background: #2563eb;
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+.vt-progress-text {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* ── Test List ── */
+.vt-test-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vt-test-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: white;
+}
+
+.vt-test-row:hover {
+  border-color: #2563eb;
+  background: #f8fafc;
+}
+
+.vt-test-row.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.vt-test-row-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vt-test-stage-icon {
+  font-size: 18px;
+  width: 28px;
+  text-align: center;
+}
+
+.vt-test-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.vt-test-updated {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.vt-test-stage-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.vt-stage-not-started { background: #f1f5f9; color: #64748b; }
+.vt-stage-tested { background: #fef3c7; color: #d97706; }
+.vt-stage-reviewed { background: #dbeafe; color: #2563eb; }
+.vt-stage-authorized { background: #dcfce7; color: #16a34a; }
+
+/* ── Form Area ── */
+.vt-form-area {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.vt-form-toolbar {
+  padding: 12px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vt-form-toolbar-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.vt-form-toolbar-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vt-form-content {
+  padding: 24px;
+  overflow-x: auto;
+}
+
+/* ── Form Fields ── */
+.vt-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.vt-field label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.vt-field input,
+.vt-field select {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.vt-field input:focus,
+.vt-field select:focus {
+  border-color: #2563eb;
+  background: white;
+}
+
+.vt-field input[readonly],
+.vt-field input:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* ── Tables ── */
+.vt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+}
+
+.vt-table th {
+  background: #f8fafc;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
+}
+
+.vt-table th:last-child {
+  border-right: none;
+}
+
+.vt-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid #f1f5f9;
+  border-right: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.vt-table td:last-child {
+  border-right: none;
+}
+
+.vt-table tr:last-child td {
+  border-bottom: none;
+}
+
+.vt-table tr:hover td {
+  background: #f8fafc;
+}
+
+.vt-table-wrapper {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* ── Section Headers ── */
+.vt-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2563eb;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 10px 0 6px 0;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 16px;
+}
+
+/* ── Signature Row ── */
+.vt-signature-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.vt-signature-box {
+  text-align: center;
+}
+
+.vt-signature-select {
+  width: 100%;
+  text-align: center;
+  background: transparent;
+  font-weight: 700;
+  color: #0f172a;
+  text-transform: uppercase;
+  outline: none;
+  font-size: 12px;
+  border: none;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+
+.vt-signature-select:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.vt-signature-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.vt-signature-timestamp {
+  font-size: 10px;
+  color: #94a3b8;
+  font-style: italic;
+  margin-top: 2px;
+}
+
+/* ── Company Header ── */
+.vt-company-header {
+  text-align: center;
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.vt-company-header img {
+  height: 64px;
+  object-fit: contain;
+  margin-bottom: 12px;
+}
+
+.vt-company-header h1 {
+  font-size: 16px;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin: 0 0 4px 0;
+}
+
+.vt-company-header p {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  margin: 0;
+}
+
+/* ── Modal ── */
+.vt-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.vt-modal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.vt-modal-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vt-modal-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.vt-modal-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.vt-modal-body {
+  padding: 20px 24px;
+}
+
+.vt-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ── Form Grid ── */
+.vt-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.vt-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.vt-grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; }
+
+/* ── Loading / Empty States ── */
+.vt-loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.vt-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+}
+
+.vt-empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.vt-empty h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #64748b;
+  margin: 0 0 8px 0;
+}
+
+.vt-empty p {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* ── Error ── */
+.vt-error {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+/* ── Saving indicator ── */
+.vt-saving {
+  font-size: 11px;
+  color: #2563eb;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .vt-main { padding: 16px; }
+  .vt-job-grid { grid-template-columns: 1fr; }
+  .vt-signature-row { grid-template-columns: 1fr; }
+  .vt-grid-2, .vt-grid-3, .vt-grid-4 { grid-template-columns: 1fr; }
+}
+
+/* ── Print styles ── */
+@media print {
+  .vt-header, .vt-form-toolbar, .vt-back-btn, .vt-btn { display: none !important; }
+  .vt-form-content { padding: 0; }
+  .vt-app { background: white; }
+  table { page-break-inside: avoid; }
+  tr, td, th { page-break-inside: avoid; }
+}

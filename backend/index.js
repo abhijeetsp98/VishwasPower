@@ -23,6 +23,7 @@ import TestTractionCompanyRoute from "./routes/testTractionCompanyRoutes.js";
 import TestTractionDataRoute from "./routes/tractionDataRoutes.js";
 import TestVConnectCompanyRoute from "./routes/testVConnectCompanyRoutes.js";
 import TestVConnectDataRoute from "./routes/vConnectDataRoutes.js";
+import voltTrackRoutes from "./routes/voltTrackRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -61,6 +62,9 @@ app.use("/api/test_tractioncompany", TestTractionCompanyRoute);
 app.use("/api/test_tractionData/", TestTractionDataRoute);
 app.use("/api/test_vconnectcompany", TestVConnectCompanyRoute);
 app.use("/api/test_vconnectData/", TestVConnectDataRoute);
+
+// VoltTrack Testing Department routes
+app.use("/api/volttrack", voltTrackRoutes);
 
 const PORT = process.env.PORT || 7000;
 const server = app.listen(PORT, () => {

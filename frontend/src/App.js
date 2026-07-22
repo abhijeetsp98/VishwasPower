@@ -7,6 +7,7 @@ import RegisterForm from "./components/RegisterForm"
 import MainAdminDashboard from "./components/MainAdminDashboard"
 import ETCAdminPanel from "./components/ETCAdminPanel"
 import CompanyWorkflow from "./components/CompanyWorkflow"
+import VoltTrackApp from "./components/volttrack/VoltTrackApp"
 import { getUserInfo, logout, isAuthenticated, initAuth, cleanupOldData } from "./utils/auth"
 
 const App = () => {
@@ -105,6 +106,19 @@ const App = () => {
     setCurrentView("company-workflow")
   }
 
+  const handleOpenVoltTrack = () => {
+    setCurrentView("volttrack")
+  }
+
+  const handleBackFromVoltTrack = () => {
+    // Return to the appropriate panel based on user role
+    if (user?.role === "admin") {
+      setCurrentView("main-dashboard")
+    } else {
+      setCurrentView("etc-panel")
+    }
+  }
+
   const handleBackToETC = () => {
     setSelectedCompany(null)
     localStorage.removeItem("selectedCompany")
@@ -153,6 +167,7 @@ const App = () => {
         <MainAdminDashboard
           user={user}
           onLogout={handleLogout}
+          onOpenVoltTrack={handleOpenVoltTrack}
           onSelectAdmin={(adminType) => {
             if (adminType === "etc") {
               setCurrentView("etc-panel")
@@ -169,6 +184,14 @@ const App = () => {
           onProjectSelect={handleProjectSelect}
           onCompanySelect={handleCompanySelect}
           onBackToMain={handleBackToMain}
+          onOpenVoltTrack={handleOpenVoltTrack}
+        />
+      )}
+
+      {currentView === "volttrack" && user && (
+        <VoltTrackApp
+          user={user}
+          onBack={handleBackFromVoltTrack}
         />
       )}
 

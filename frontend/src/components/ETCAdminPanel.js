@@ -25,6 +25,7 @@ const ETCAdminPanel = ({
   onCompanySelect,
   onProjectSelect,
   onBackToMain,
+  onOpenVoltTrack,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [departments, setDepartments] = useState([]);
@@ -3158,6 +3159,14 @@ const ETCAdminPanel = ({
             <span className="user-badge">
               Role : {user?.role || "etcadmin"}
             </span>
+            <button
+              onClick={onOpenVoltTrack}
+              className="logout-btn"
+              style={{ background: "#1e3a8a", marginRight: 8 }}
+              title="Open Testing Department"
+            >
+              🔬 Testing Dept
+            </button>
             <button onClick={handleLogoutAndClearData} className="logout-btn">
               🚪 Logout
             </button>
