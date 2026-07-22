@@ -106,8 +106,8 @@ const App = () => {
   }
 
   const handleOpenVoltTrack = () => {
-    // Open the VoltTrack Vite app (static files in public/volttrack/) in a new tab
-    window.open("/volttrack/", "_blank")
+    // Open the VoltTrack Testing app (static files in public/testing/) in a new tab
+    window.open("/testing/", "_blank")
   }
 
   const handleBackToETC = () => {

@@ -6,8 +6,8 @@ import {defineConfig, loadEnv} from 'vite';
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
-    // Serve from /volttrack/ when deployed behind Nginx/Express
-    base: '/volttrack/',
+    // Serve from /testing/ when deployed
+    base: '/testing/',
     plugins: [react(), tailwindcss()],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
