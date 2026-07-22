@@ -7,7 +7,6 @@ import RegisterForm from "./components/RegisterForm"
 import MainAdminDashboard from "./components/MainAdminDashboard"
 import ETCAdminPanel from "./components/ETCAdminPanel"
 import CompanyWorkflow from "./components/CompanyWorkflow"
-import VoltTrackApp from "./components/volttrack/VoltTrackApp"
 import { getUserInfo, logout, isAuthenticated, initAuth, cleanupOldData } from "./utils/auth"
 
 const App = () => {
@@ -107,16 +106,8 @@ const App = () => {
   }
 
   const handleOpenVoltTrack = () => {
-    setCurrentView("volttrack")
-  }
-
-  const handleBackFromVoltTrack = () => {
-    // Return to the appropriate panel based on user role
-    if (user?.role === "admin") {
-      setCurrentView("main-dashboard")
-    } else {
-      setCurrentView("etc-panel")
-    }
+    // Open the VoltTrack Vite app served at /volttrack in a new tab
+    window.open("/volttrack", "_blank")
   }
 
   const handleBackToETC = () => {
@@ -185,13 +176,6 @@ const App = () => {
           onCompanySelect={handleCompanySelect}
           onBackToMain={handleBackToMain}
           onOpenVoltTrack={handleOpenVoltTrack}
-        />
-      )}
-
-      {currentView === "volttrack" && user && (
-        <VoltTrackApp
-          user={user}
-          onBack={handleBackFromVoltTrack}
         />
       )}
 

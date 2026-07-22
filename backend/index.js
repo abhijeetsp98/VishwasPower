@@ -66,6 +66,14 @@ app.use("/api/test_vconnectData/", TestVConnectDataRoute);
 // VoltTrack Testing Department routes
 app.use("/api/volttrack", voltTrackRoutes);
 
+// Serve VoltTrack Vite app as static files at /volttrack
+const voltTrackPath = path.join(__dirname, "public", "volttrack");
+app.use("/volttrack", express.static(voltTrackPath));
+// SPA catch-all: any /volttrack/* route serves index.html
+app.get("/volttrack/*", (req, res) => {
+  res.sendFile(path.join(voltTrackPath, "index.html"));
+});
+
 const PORT = process.env.PORT || 7000;
 const server = app.listen(PORT, () => {
   console.log(`✅ Server is running on http://localhost:${PORT}`);
