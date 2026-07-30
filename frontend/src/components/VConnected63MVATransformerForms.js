@@ -3,8 +3,41 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import "./form-styles.css"
 import axios from "axios"
-import { BACKEND_API_BASE_URL } from "./constant"
+import { BACKEND_API_BASE_URL, ENABLE_IMAGE_COMPRESSION, IMAGE_COMPRESSION_MAX_WIDTH, IMAGE_COMPRESSION_QUALITY } from "./constant"
 import { getUserInfo } from "../utils/auth"
+
+// ─── Image compression utility (same as FormStage.js) ────────────────────────
+const compressImage = (file, maxWidth, quality) => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          const compressedFile = new File(
+            [blob],
+            file.name.replace(/\.[^.]+$/, ".jpg"),
+            { type: "image/jpeg" }
+          );
+          resolve(compressedFile);
+        },
+        "image/jpeg",
+        quality
+      );
+    };
+    img.onerror = () => resolve(file); // fallback: use original if compression fails
+    img.src = URL.createObjectURL(file);
+  });
+};
 
 // Signature Canvas Hook
 const useSignatureCanvas = (initialDataUrl) => {
@@ -125,6 +158,13 @@ const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = fals
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
 
+  // ✅ Fix: assign srcObject AFTER the video element is rendered in the DOM
+  useEffect(() => {
+    if (showCamera && cameraStream && videoRef.current) {
+      videoRef.current.srcObject = cameraStream
+    }
+  }, [showCamera, cameraStream])
+
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -132,9 +172,7 @@ const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = fals
       })
       setCameraStream(stream)
       setShowCamera(true)
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-      }
+      // Note: srcObject is assigned in useEffect above, after video element renders
     } catch (error) {
       console.error("Error accessing camera:", error)
       alert("Unable to access camera. Please check permissions.")
@@ -423,11 +461,11 @@ export function Stage1Form1({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable/Stage1Form1`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 1,
+          formNumber: 1,
         })
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for stage1Form1")
@@ -781,8 +819,11 @@ export function Stage1Form2({ onSubmit, onPrevious, initialData, isLastFormOfSta
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable/Stage1Form2`, {
-          params: { companyName, projectName },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 1,
+          formNumber: 2,
         })
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage1Form2")
@@ -949,8 +990,11 @@ export function Stage1Form3({ onSubmit, onPrevious, initialData, isLastFormOfSta
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable/Stage1Form3`, {
-          params: { companyName, projectName },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 1,
+          formNumber: 3,
         })
 
         if (response.data && response.data.data) {
@@ -1233,8 +1277,11 @@ export function Stage1Form4({ onSubmit, onPrevious, initialData, isLastFormOfSta
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable/Stage1Form4`, {
-          params: { companyName, projectName },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 1,
+          formNumber: 4,
         })
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage1Form4")
@@ -1430,8 +1477,11 @@ export function Stage1Form5({ onSubmit, onPrevious, initialData, isLastFormOfSta
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable/Stage1Form5`, {
-          params: { companyName, projectName },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 1,
+          formNumber: 5,
         })
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage1Form5")
@@ -1626,8 +1676,11 @@ export function Stage1Form6({ onSubmit, onPrevious, initialData, isLastFormOfSta
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable/Stage1Form6`, {
-          params: { companyName, projectName },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 1,
+          formNumber: 6,
         })
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage1Form6")
@@ -1884,8 +1937,11 @@ export function Stage1Form7({ onSubmit, onPrevious, initialData, isLastFormOfSta
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable/Stage1Form7`, {
-          params: { companyName, projectName },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 1,
+          formNumber: 7,
         })
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage1Form7")
@@ -2263,8 +2319,11 @@ export function Stage1Form8({ onSubmit, onPrevious, initialData, isLastFormOfSta
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable/Stage1Form8`, {
-          params: { companyName, projectName },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 1,
+          formNumber: 8,
         })
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage1Form8")
@@ -2515,15 +2574,12 @@ export function Stage2Form1({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(
-          `${BACKEND_API_BASE_URL}/api/vconnectData/getTable/Stage2Form1`,
-          {
-            params: {
-              companyName,
-              projectName,
-            },
-          },
-        )
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 2,
+          formNumber: 1,
+        })
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage2Form1")
           setFormData((prev) => ({ ...prev, ...response.data.data }))
@@ -2816,11 +2872,11 @@ export function Stage2Form2({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable/Stage2Form2`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 2,
+          formNumber: 2,
         })
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for stage2Form2")
@@ -3351,11 +3407,11 @@ export function Stage3Form1({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage3Form1`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 3,
+          formNumber: 1,
         })
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for stage3Form1")
@@ -3809,11 +3865,11 @@ export function Stage4Form1({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage4Form1`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 4,
+          formNumber: 1,
         })
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for stage4Form1")
@@ -3996,11 +4052,11 @@ export function Stage4Form2({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage4Form2`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 4,
+          formNumber: 2,
         })
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for stage4Form2")
@@ -4326,11 +4382,11 @@ export function Stage4Form3({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage4Form3`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 4,
+          formNumber: 3,
         })
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for stage4Form3")
@@ -4513,11 +4569,11 @@ export function Stage4Form4({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage4Form4`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 4,
+          formNumber: 4,
         })
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for stage4Form4")
@@ -4874,11 +4930,11 @@ export function Stage5Form1({ onSubmit, onPrevious, initialData, isLastFormOfSta
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage5Form1`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 5,
+          formNumber: 1,
         })
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for stage5Form1")
@@ -5359,15 +5415,12 @@ export function Stage5Form2({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(
-          `${BACKEND_API_BASE_URL}/api/vconnectData/getTable/Stage5Form2`,
-          {
-            params: {
-              companyName,
-              projectName,
-            },
-          },
-        )
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 5,
+          formNumber: 2,
+        })
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage5Form2")
           setFormData((prev) => ({ ...prev, ...response.data.data }))
@@ -5649,15 +5702,14 @@ export function Stage5Form3({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        // Persisted name kept as Stage5Form7 for backward compatibility
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage5Form7`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 5,
+          formNumber: 3,
         })
         if (response.data && response.data.data) {
-          console.log("Data fetched from DB for stage5Form7")
+          console.log("Data fetched from DB for stage5Form3")
           setFormData(response.data.data)
         } else {
           console.log("There is no data in DB.")
@@ -5924,14 +5976,14 @@ export function Stage5Form4({ onSubmit, onPrevious, initialData, isLastFormOfSta
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage5Form8`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 5,
+          formNumber: 4,
         })
         if (response.data && response.data.data) {
-          console.log("Data fetched from DB for stage5Form8")
+          console.log("Data fetched from DB for stage5Form4")
           setFormData(response.data.data)
         } else {
           console.log("There is no data in DB.")
@@ -6304,14 +6356,14 @@ export function Stage5Form5({ onSubmit, onPrevious, initialData, isLastFormOfSta
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage5Form9`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 5,
+          formNumber: 5,
         })
         if (response.data && response.data.data) {
-          console.log("Data fetched from DB for stage5Form9")
+          console.log("Data fetched from DB for stage5Form5")
           setFormData(response.data.data)
         } else {
           console.log("There is no data in DB.")
@@ -6572,14 +6624,14 @@ export function Stage5Form6({ onSubmit, onPrevious, initialData, isLastFormOfSta
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage5Form9`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 5,
+          formNumber: 6,
         })
         if (response.data && response.data.data) {
-          console.log("Data fetched from DB for stage5Form9")
+          console.log("Data fetched from DB for stage5Form6")
           setFormData(response.data.data)
         } else {
           console.log("There is no data in DB.")
@@ -6840,14 +6892,14 @@ export function Stage5Form7({ onSubmit, onPrevious, initialData, isLastFormOfSta
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage5Form9`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 5,
+          formNumber: 7,
         })
         if (response.data && response.data.data) {
-          console.log("Data fetched from DB for stage5Form9")
+          console.log("Data fetched from DB for stage5Form7")
           setFormData(response.data.data)
         } else {
           console.log("There is no data in DB.")
@@ -7122,15 +7174,12 @@ export function Stage5Form8({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(
-          `${BACKEND_API_BASE_URL}/api/vconnectData/getTable/Stage5Form6`,
-          {
-            params: {
-              companyName,
-              projectName,
-            },
-          },
-        )
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 5,
+          formNumber: 8,
+        })
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage5Form6")
           setFormData((prev) => ({ ...prev, ...response.data.data }))
@@ -7477,14 +7526,14 @@ export function Stage5Form9({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage5Form7`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 5,
+          formNumber: 9,
         })
         if (response.data && response.data.data) {
-          console.log("Data fetched from DB for Stage5Form7")
+          console.log("Data fetched from DB for stage5Form9")
           const incoming = response.data.data || {}
 
           const normalizeRows = (srcRows = {}) => {
@@ -7857,8 +7906,11 @@ export function Stage5Form10({ onSubmit, onPrevious, initialData, isLastFormOfSt
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable/Stage5Form8`, {
-          params: { companyName, projectName },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 5,
+          formNumber: 10,
         })
 
         if (response.data && response.data.data) {
@@ -8185,8 +8237,11 @@ export function Stage5Form11({ onSubmit, onPrevious, initialData, isLastFormOfSt
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable/Stage5Form11`, {
-          params: { companyName, projectName },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 5,
+          formNumber: 11,
         })
 
         if (response.data && response.data.data) {
@@ -8581,8 +8636,11 @@ export function Stage6Form1({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable/Stage6Form1`, {
-          params: { companyName, projectName },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 6,
+          formNumber: 1,
         })
         if (response.data && response.data.data) {
           const incoming = response.data.data || {}
@@ -9966,8 +10024,11 @@ export function Stage6Form2({ onSubmit, onPrevious, initialData, isLastFormOfSta
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable/Stage6Form2`, {
-          params: { companyName, projectName },
+        const response = await axios.post(`${BACKEND_API_BASE_URL}/api/vconnectData/getTable`, {
+          companyName,
+          projectName,
+          stage: 6,
+          formNumber: 2,
         })
         if (response.data && response.data.data) {
           setFormData((prev) => ({ ...prev, ...response.data.data }))
@@ -11404,21 +11465,25 @@ const VConnected63MVATransformerForms = ({
       formDataToSend.append("stage", normalizeScalar(stage) ?? "");
       formDataToSend.append("formNumber", String(currentFormIndex + 1));
 
-      // loop through keys of `data`
-      Object.entries(data).forEach(([key, value]) => {
+      // loop through keys of `data` — use for...of to support await inside
+      for (const [key, value] of Object.entries(data)) {
         if (key === "photos" && typeof value === "object") {
-          Object.entries(value).forEach(([photoKey, file]) => {
+          for (const [photoKey, file] of Object.entries(value)) {
             if (file instanceof File) {
-              formDataToSend.append(`photos[${photoKey}]`, file);
+              // ✅ Compress image before upload (same as Auto Transformer)
+              const fileToUpload = ENABLE_IMAGE_COMPRESSION
+                ? await compressImage(file, IMAGE_COMPRESSION_MAX_WIDTH, IMAGE_COMPRESSION_QUALITY)
+                : file;
+              formDataToSend.append(`photos[${photoKey}]`, fileToUpload);
             }
-          });
+          }
         } else if (typeof value === "object") {
           // 🔹 make sure objects are stringified before sending
           formDataToSend.append(key, JSON.stringify(value));
         } else {
           formDataToSend.append(key, value ?? "");
         }
-      });
+      }
 
       // 🔹 POST request
       await axios.post(
