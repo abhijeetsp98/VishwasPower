@@ -118,13 +118,14 @@ The app manages 3 types of transformers, each with their own set of forms organi
 - **Company routes:** `/api/tractioncompany/`
 
 ### 4.3 V Connect 63 MVA Transformer
-- **Frontend:** `frontend/src/components/VConnected63MVATransformerForms.js` (11,590 lines)
+- **Frontend:** `frontend/src/components/VConnected63MVATransformerForms.js`
 - **Backend routes:** `/api/vconnectData/` → `backend/routes/vConnectDataRoutes.js`
 - **Controller:** `backend/controller/vConnectDataController.js`
 - **Model:** `backend/model/VConnect.js`
 - **Company routes:** `/api/vconnectcompany/`
-- **Stages:** 6 stages with multiple forms each
-- **⚠️ KNOWN ISSUE:** Some forms use wrong API path `/api/table/getTable/...` instead of `/api/vconnectData/getTable/...`
+- **Stages:** **7 stages** (Stage 1–6 = testing/commissioning forms, Stage 7 = Work Completion Report)
+- **View form:** `frontend/src/components/VConnected63MVATransformerViewForm.js`
+- **Stage review panel:** `frontend/src/components/VConnected63MVATransformerStageReviewPanel.js`
 
 ---
 
@@ -218,20 +219,7 @@ GET  /api/health
 
 ## 8. Known Issues & Bugs
 
-### Bug 1: V Connect 63 MVA — GET instead of POST for getTable
-**File:** `frontend/src/components/VConnected63MVATransformerForms.js`  
-**Problem:** Frontend calls `GET /api/vconnectData/getTable/Stage1Form1?companyName=...&projectName=...`  
-**Root cause:** Backend only has `POST /getTable` that reads from `req.body`. GET with query params returns 404.  
-**Fix needed:** Change frontend calls from `axios.get(url, { params: {...} })` to `axios.post(url, { stage, formNumber, companyName, projectName })`
-
-### Bug 2: V Connect 63 MVA — Wrong API path for some forms
-**File:** `frontend/src/components/VConnected63MVATransformerForms.js`  
-**Problem:** Some forms call `/api/table/getTable/...` instead of `/api/vconnectData/getTable/...`  
-**Affected forms:** Stage3Form1, Stage4Form1-4, Stage5Form7-9  
-**Fix needed:** Change `/api/table/getTable/` to `/api/vconnectData/getTable/` in those calls
-
-### Bug 3: V Connect 63 MVA — Photos not uploading
-**Likely cause:** Related to Bug 1 — if the GET call fails on load, the form state may not initialize correctly, causing the save (POST setTable) to fail or send incomplete data.
+All previously known V Connect 63 MVA bugs have been resolved. See Section 15 for the current V Connect architecture.
 
 ---
 
@@ -367,7 +355,9 @@ Each department has two MongoDB collections:
 
 ---
 
-### 13.2 Stage Structure (Auto Transformer — same pattern for all departments)
+### 13.2 Stage Structure
+
+**Auto Transformer (6 stages):**
 
 | Stage | Forms | Description |
 |---|---|---|
@@ -378,8 +368,19 @@ Each department has two MongoDB collections:
 | 5 | 2 | Valve Status/Air Venting, Final Pre-Commissioning Checks |
 | 6 | 1 | Work Completion Certificate |
 
-**V Connect 63 MVA** has the same 6-stage structure but different form content.  
-**Traction Transformer** follows the same pattern with its own form set.
+**V Connect 63 MVA (7 stages):**
+
+| Stage | Forms | Description |
+|---|---|---|
+| 1 | 8 | Name Plate Details, CT Ratio Tests (Phase 1-3), Tan Delta, IR Values |
+| 2 | 2 | Oil Filling Records, IR After Erection |
+| 3 | 1 | Vacuum Cycle Recording + Pressure Test |
+| 4 | 4 | Oil Filtration (Main Tank, Cooler Bank, Combine), IR & PI Values |
+| 5 | 11 | SFRA, Ratio Test, Magnetising, Polarity, Short Circuit (×3), Winding Resistance, Tan Delta (×2), IR Values |
+| 6 | 3 | Pre-Commissioning Checklist, Transformer Protection & Accessories, Final Checklist |
+| 7 | 1 | Work Completion Report |
+
+**Traction Transformer** follows the same 6-stage pattern with its own form set.
 
 ---
 
@@ -531,12 +532,94 @@ All three are rendered inside `ETCAdminPanel.js` based on `selectedDepartment`.
 Before uploading photos, the frontend compresses images:
 - Controlled by `ENABLE_IMAGE_COMPRESSION` in `constant.js` (currently `true`)
 - Max width: 1920px, JPEG quality: 80%
-- Implemented in `FormStage.js` → `compressImage()` function
+- Implemented in `FormStage.js` → `compressImage()` function (Auto Transformer)
+- Also implemented in `VConnected63MVATransformerForms.js` → `compressImage()` function (V Connect)
 - Applied to all photo uploads before sending to backend
 
 ---
 
-## 14. Testing Department Routes (Legacy — Hidden in UI)
+## 14. V Connect 63 MVA — Photo Upload & View Form Architecture
+
+### 14.1 PhotoUploadSection Component (`VConnected63MVATransformerForms.js`)
+
+The `PhotoUploadSection` is a shared component used by all V Connect form components. It handles camera capture, gallery selection, and photo preview.
+
+**Key state:**
+```js
+const [capturedPhotos, setCapturedPhotos] = useState({})  // preview URLs keyed by photoKey
+const [currentPhotoKey, setCurrentPhotoKey] = useState(null)  // which slot is being captured
+const [cameraStream, setCameraStream] = useState(null)
+const [showCamera, setShowCamera] = useState(false)
+```
+
+**Props:**
+```js
+<PhotoUploadSection
+  title="..."                    // description text
+  photos={[{ key, label }]}      // array of photo slots
+  onPhotoChange={(key, file) => {}} // called when photo selected/captured
+  allowMultiple={false}          // enable bulk upload
+  initialPhotos={{}}             // pre-populate previews from DB (photo URLs)
+/>
+```
+
+**How camera works:**
+1. `startCamera(photoKey)` — opens camera for a specific photo slot, stores `currentPhotoKey`
+2. `useEffect` assigns `srcObject` + calls `.play()` AFTER the `<video>` element renders (avoids null ref)
+3. `capturePhoto()` — draws video frame to canvas, creates File blob, stores preview URL in `capturedPhotos`
+4. Camera buttons have `type="button"` + `e.preventDefault()` + `e.stopPropagation()` to prevent form auto-submit
+
+**Important rules:**
+- Each photo slot has its own Camera button — clicking Camera on slot 2 captures to slot 2 (not slot 1)
+- After capture, a thumbnail preview appears with a red ❌ remove button
+- Gallery selection also shows preview immediately
+- `initialPhotos` is used when loading existing form data from DB to show previously uploaded photos
+
+---
+
+### 14.2 View Form Architecture (`VConnected63MVATransformerViewForm.js`)
+
+The view form renders submitted form data in **read-only mode** for ETC admin review.
+
+**Component structure:**
+```
+VConnected63MVATransformerViewFormRenderer (exported)
+  ├── Stage1ReviewRenderer  → uses Stage1Form1-8 from StageReviewPanel
+  ├── Stage2ReviewRenderer  → uses Stage2Form1-2
+  ├── Stage3ReviewRenderer  → uses Stage3Form1
+  ├── Stage4ReviewRenderer  → uses Stage4Form1-4
+  ├── Stage5ReviewRenderer  → uses Stage5Form1-11
+  ├── Stage6ReviewRenderer  → uses Stage6Form1-3
+  ├── Stage7ReviewRenderer  → uses Stage7Form1
+  └── GenericStageRenderer  → fallback, renders fields manually
+```
+
+**Form components are imported from `VConnected63MVATransformerStageReviewPanel.js`** (NOT from `VConnected63MVATransformerForms.js`). The stage review panel has its own read-only form components.
+
+**The `FormComponent` pattern:**
+```jsx
+{FormComponent ? (
+  <FormComponent formData={formData} />   // renders form + photos via PhotoUploadSection
+) : (
+  <div>...manual field rendering...</div>
+)}
+
+// ⚠️ IMPORTANT: Only call renderPhotos when FormComponent is absent
+{!FormComponent && formData.photos && renderPhotos(formData.photos, form.id)}
+```
+
+**Why `!FormComponent &&` is required:**
+- When `FormComponent` exists, it renders photos via `PhotoUploadSection` with `initialPhotos`
+- Without the guard, `renderPhotos()` would also render the same photos → **double rendering**
+- `GenericStageRenderer` has no `FormComponent`, so its `renderPhotos()` call has no guard (correct)
+
+**`renderPhotos()` function:**
+- Renders photos from DB as a grid with thumbnail, label, and Download button
+- Handles full URL construction from relative paths stored in MongoDB
+
+---
+
+## 15. Testing Department Routes (Legacy — Hidden in UI)
 
 The main backend also has testing department routes that are currently hidden (`TESTING_DEPARTMENT = false` in constant.js):
 ```

@@ -193,7 +193,7 @@ const Stage7ReviewRenderer = ({ formDataFromDB, formatLabel }) => {
               </div>
             )}
 
-            {formData.photos && renderPhotos(formData.photos, form.id)}
+            {!FormComponent && formData.photos && renderPhotos(formData.photos, form.id)}
           </div>
         );
       })}
@@ -275,7 +275,7 @@ const Stage6ReviewRenderer = ({ formDataFromDB, formatLabel }) => {
               </div>
             )}
 
-            {formData.photos && renderPhotos(formData.photos, form.id)}
+            {!FormComponent && formData.photos && renderPhotos(formData.photos, form.id)}
           </div>
         );
       })}
@@ -347,7 +347,7 @@ const Stage3ReviewRenderer = ({ formDataFromDB, formatLabel }) => {
               </div>
             )}
 
-            {formData.photos && renderPhotos(formData.photos, form.id)}
+            {!FormComponent && formData.photos && renderPhotos(formData.photos, form.id)}
           </div>
         );
       })}
@@ -434,7 +434,7 @@ const Stage4ReviewRenderer = ({ formDataFromDB, formatLabel }) => {
               </div>
             )}
 
-            {formData.photos && renderPhotos(formData.photos, form.id)}
+            {!FormComponent && formData.photos && renderPhotos(formData.photos, form.id)}
           </div>
         );
       })}
@@ -556,7 +556,7 @@ const Stage5ReviewRenderer = ({ formDataFromDB, formatLabel }) => {
               </div>
             )}
 
-            {formData.photos && renderPhotos(formData.photos, form.id)}
+            {!FormComponent && formData.photos && renderPhotos(formData.photos, form.id)}
           </div>
         );
       })}
@@ -635,7 +635,7 @@ const Stage2ReviewRenderer = ({ formDataFromDB, formatLabel }) => {
             )}
 
             {/* Render photos if they exist */}
-            {formData.photos && renderPhotos(formData.photos, form.id)}
+            {!FormComponent && formData.photos && renderPhotos(formData.photos, form.id)}
           </div>
         );
       })}
@@ -744,7 +744,7 @@ const Stage1ReviewRenderer = ({ formDataFromDB, formatLabel }) => {
             )}
 
             {/* Render photos if they exist */}
-            {formData.photos && renderPhotos(formData.photos, form.id)}
+            {!FormComponent && formData.photos && renderPhotos(formData.photos, form.id)}
           </div>
         );
       })}

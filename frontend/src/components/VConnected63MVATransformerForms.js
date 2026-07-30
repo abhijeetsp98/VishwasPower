@@ -151,28 +151,50 @@ const useSignatureCanvas = (initialDataUrl) => {
   }
 }
 
-// Enhanced Photo Upload Component
-const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = false }) => {
+// Enhanced Photo Upload Component — matches FormStage.js implementation
+const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = false, initialPhotos = {} }) => {
   const [cameraStream, setCameraStream] = useState(null)
   const [showCamera, setShowCamera] = useState(false)
+  const [currentPhotoKey, setCurrentPhotoKey] = useState(null)
+  const [capturedPhotos, setCapturedPhotos] = useState({})
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
 
-  // ✅ Fix: assign srcObject AFTER the video element is rendered in the DOM
+  // Pre-populate previews from DB-loaded photo URLs
+  useEffect(() => {
+    if (initialPhotos && Object.keys(initialPhotos).length > 0) {
+      setCapturedPhotos((prev) => {
+        const merged = { ...prev }
+        Object.keys(initialPhotos).forEach((key) => {
+          if (!merged[key]) merged[key] = initialPhotos[key]
+        })
+        return merged
+      })
+    }
+  }, [initialPhotos])
+
+  // ✅ Assign srcObject + call play() AFTER the video element is rendered in the DOM
   useEffect(() => {
     if (showCamera && cameraStream && videoRef.current) {
       videoRef.current.srcObject = cameraStream
+      videoRef.current.play().catch((err) => console.error("Error playing video:", err))
+    }
+    return () => {
+      stopCamera()
+      Object.values(capturedPhotos).forEach((url) => {
+        if (url && url.startsWith("blob:")) URL.revokeObjectURL(url)
+      })
     }
   }, [showCamera, cameraStream])
 
-  const startCamera = async () => {
+  const startCamera = async (photoKey) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
       })
       setCameraStream(stream)
       setShowCamera(true)
-      // Note: srcObject is assigned in useEffect above, after video element renders
+      setCurrentPhotoKey(photoKey)
     } catch (error) {
       console.error("Error accessing camera:", error)
       alert("Unable to access camera. Please check permissions.")
@@ -184,11 +206,12 @@ const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = fals
       cameraStream.getTracks().forEach((track) => track.stop())
       setCameraStream(null)
       setShowCamera(false)
+      setCurrentPhotoKey(null)
     }
   }
 
-  const capturePhoto = (photoKey) => {
-    if (videoRef.current && canvasRef.current) {
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current && currentPhotoKey) {
       const canvas = canvasRef.current
       const video = videoRef.current
       const context = canvas.getContext("2d")
@@ -200,10 +223,10 @@ const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = fals
       canvas.toBlob(
         (blob) => {
           if (blob) {
-            const file = new File([blob], `camera-capture-${Date.now()}.jpg`, {
-              type: "image/jpeg",
-            })
-            onPhotoChange(photoKey, file)
+            const file = new File([blob], `camera-capture-${Date.now()}.jpg`, { type: "image/jpeg" })
+            const previewUrl = URL.createObjectURL(blob)
+            setCapturedPhotos((prev) => ({ ...prev, [currentPhotoKey]: previewUrl }))
+            onPhotoChange(currentPhotoKey, file)
             stopCamera()
           }
         },
@@ -213,21 +236,33 @@ const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = fals
     }
   }
 
+  const removePhoto = (photoKey) => {
+    setCapturedPhotos((prev) => {
+      const next = { ...prev }
+      if (next[photoKey] && next[photoKey].startsWith("blob:")) URL.revokeObjectURL(next[photoKey])
+      delete next[photoKey]
+      return next
+    })
+    onPhotoChange(photoKey, null)
+  }
+
   const handleFileSelect = (photoKey, files) => {
     if (allowMultiple && files.length > 1) {
       Array.from(files).forEach((file, index) => {
-        onPhotoChange(`${photoKey}_${index}`, file)
+        const key = `${photoKey}_${index}`
+        const previewUrl = URL.createObjectURL(file)
+        setCapturedPhotos((prev) => ({ ...prev, [key]: previewUrl }))
+        onPhotoChange(key, file)
       })
     } else {
-      onPhotoChange(photoKey, files[0])
+      const file = files[0]
+      if (file) {
+        const previewUrl = URL.createObjectURL(file)
+        setCapturedPhotos((prev) => ({ ...prev, [photoKey]: previewUrl }))
+        onPhotoChange(photoKey, file)
+      }
     }
   }
-
-  useEffect(() => {
-    return () => {
-      stopCamera()
-    }
-  }, [])
 
   return (
     <div className="photo-upload-section">
@@ -257,8 +292,9 @@ const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = fals
             <button
               type="button"
               onClick={(e) => {
-                e.stopPropagation();
-                capturePhoto(photos[0]?.key);
+                e.preventDefault()
+                e.stopPropagation()
+                capturePhoto()
               }}
               className="capture-btn"
               style={{
@@ -275,10 +311,7 @@ const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = fals
             </button>
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                stopCamera();
-              }}
+              onClick={stopCamera}
               style={{
                 padding: "10px 20px",
                 margin: "0 10px",
@@ -300,10 +333,53 @@ const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = fals
           <div key={index} className="photo-upload-item">
             <label>{photo.label}</label>
 
+            {/* ✅ Image preview with remove button — same as Auto Transformer */}
+            {capturedPhotos[photo.key] && (
+              <div style={{ marginTop: "10px", position: "relative" }}>
+                <img
+                  src={capturedPhotos[photo.key]}
+                  alt={`Preview for ${photo.label}`}
+                  style={{
+                    width: "150px",
+                    height: "100px",
+                    objectFit: "cover",
+                    borderRadius: "8px",
+                    border: "2px solid #4CAF50",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => removePhoto(photo.key)}
+                  style={{
+                    position: "absolute",
+                    top: "-5px",
+                    right: "-5px",
+                    backgroundColor: "#f44336",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: "20px",
+                    height: "20px",
+                    cursor: "pointer",
+                    fontSize: "12px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
             <div className="upload-options" style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
               <button
                 type="button"
-                onClick={startCamera}
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  startCamera(photo.key)
+                }}
                 className="camera-btn"
                 style={{
                   padding: "8px 12px",
@@ -368,7 +444,14 @@ const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = fals
             <input
               type="file"
               accept="image/*"
-              onChange={(e) => onPhotoChange(photo.key, e.target.files[0])}
+              onChange={(e) => {
+                const file = e.target.files[0]
+                if (file) {
+                  const previewUrl = URL.createObjectURL(file)
+                  setCapturedPhotos((prev) => ({ ...prev, [photo.key]: previewUrl }))
+                  onPhotoChange(photo.key, file)
+                }
+              }}
               style={{ marginTop: "10px", width: "100%" }}
             />
           </div>
