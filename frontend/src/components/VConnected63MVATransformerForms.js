@@ -255,7 +255,11 @@ const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = fals
           <canvas ref={canvasRef} style={{ display: "none" }} />
           <div style={{ marginTop: "20px" }}>
             <button
-              onClick={() => capturePhoto(photos[0]?.key)}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                capturePhoto(photos[0]?.key);
+              }}
               className="capture-btn"
               style={{
                 padding: "10px 20px",
@@ -270,7 +274,11 @@ const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = fals
               📷 Capture Photo
             </button>
             <button
-              onClick={stopCamera}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                stopCamera();
+              }}
               style={{
                 padding: "10px 20px",
                 margin: "0 10px",
