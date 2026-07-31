@@ -3739,71 +3739,87 @@ const ETCAdminPanel = ({
                           {Project.status === "completed" && "✅"}
                           {Project.status}
                         </span>
-                        {Project.lastSubmittedUser && (
-                          <div style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "flex-end",
-                            gap: "2px",
-                          }}>
-                            <span style={{
-                              fontSize: "0.72rem",
-                              color: "#6b7280",
-                              fontWeight: "500",
-                              whiteSpace: "nowrap",
+                        {Project.lastSubmittedUser && (() => {
+                          // Derive last submitted stage from submittedStages map
+                          const submittedNums = Object.entries(Project.submittedStages || {})
+                            .filter(([, v]) => v === true)
+                            .map(([k]) => parseInt(k))
+                            .filter(n => !isNaN(n));
+                          const lastSubmittedStage = submittedNums.length > 0 ? Math.max(...submittedNums) : null;
+                          return (
+                            <div style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "flex-end",
+                              gap: "2px",
                             }}>
-                              👤 Last Submitted: {Project.lastEventAction?.includes("Submitted") && <strong style={{ color: "#374151" }}>{Project.lastEventAction.replace(" Submitted", "")} by </strong>}<strong style={{ color: "#1e3a8a" }}>{Project.lastSubmittedUser}</strong>
-                            </span>
-                            {Project.lastSubmittedTimestamp && (
                               <span style={{
-                                fontSize: "0.68rem",
-                                color: "#9ca3af",
+                                fontSize: "0.72rem",
+                                color: "#6b7280",
+                                fontWeight: "500",
                                 whiteSpace: "nowrap",
                               }}>
-                                🕐 {new Date(Project.lastSubmittedTimestamp).toLocaleString("en-IN", {
-                                  day: "2-digit",
-                                  month: "short",
-                                  year: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
+                                👤 Last Submitted: {lastSubmittedStage && <strong style={{ color: "#374151" }}>Stage {lastSubmittedStage} by </strong>}<strong style={{ color: "#1e3a8a" }}>{Project.lastSubmittedUser}</strong>
                               </span>
-                            )}
-                          </div>
-                        )}
-                        {Project.lastApprovedUser && (
-                          <div style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "flex-end",
-                            gap: "2px",
-                            marginTop: "4px",
-                          }}>
-                            <span style={{
-                              fontSize: "0.72rem",
-                              color: "#6b7280",
-                              fontWeight: "500",
-                              whiteSpace: "nowrap",
+                              {Project.lastSubmittedTimestamp && (
+                                <span style={{
+                                  fontSize: "0.68rem",
+                                  color: "#9ca3af",
+                                  whiteSpace: "nowrap",
+                                }}>
+                                  🕐 {new Date(Project.lastSubmittedTimestamp).toLocaleString("en-IN", {
+                                    day: "2-digit",
+                                    month: "short",
+                                    year: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
+                        {Project.lastApprovedUser && (() => {
+                          // Derive last approved stage from stageApprovals map
+                          const approvedNums = Object.entries(Project.stageApprovals || {})
+                            .filter(([, v]) => v === true)
+                            .map(([k]) => parseInt(k))
+                            .filter(n => !isNaN(n));
+                          const lastApprovedStage = approvedNums.length > 0 ? Math.max(...approvedNums) : null;
+                          return (
+                            <div style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "flex-end",
+                              gap: "2px",
+                              marginTop: "4px",
                             }}>
-                              ✅ Last Approved: {Project.lastEventAction?.includes("Approved") && <strong style={{ color: "#374151" }}>{Project.lastEventAction.replace(" Approved", "")} by </strong>}<strong style={{ color: "#059669" }}>{Project.lastApprovedUser}</strong>
-                            </span>
-                            {Project.lastApprovedTimestamp && (
                               <span style={{
-                                fontSize: "0.68rem",
-                                color: "#9ca3af",
+                                fontSize: "0.72rem",
+                                color: "#6b7280",
+                                fontWeight: "500",
                                 whiteSpace: "nowrap",
                               }}>
-                                🕐 {new Date(Project.lastApprovedTimestamp).toLocaleString("en-IN", {
-                                  day: "2-digit",
-                                  month: "short",
-                                  year: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
+                                ✅ Last Approved: {lastApprovedStage && <strong style={{ color: "#374151" }}>Stage {lastApprovedStage} by </strong>}<strong style={{ color: "#059669" }}>{Project.lastApprovedUser}</strong>
                               </span>
-                            )}
-                          </div>
-                        )}
+                              {Project.lastApprovedTimestamp && (
+                                <span style={{
+                                  fontSize: "0.68rem",
+                                  color: "#9ca3af",
+                                  whiteSpace: "nowrap",
+                                }}>
+                                  🕐 {new Date(Project.lastApprovedTimestamp).toLocaleString("en-IN", {
+                                    day: "2-digit",
+                                    month: "short",
+                                    year: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                     <h3>{Project.name}</h3>
