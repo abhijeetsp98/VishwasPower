@@ -481,7 +481,7 @@ Body: { companyName, projectName, stage, formNumber }
 Backend returns: { data: { ...formFields, photos: { PhotoKey: "https://vishwaspower.in/uploads/..." } } }
 ```
 
-**⚠️ V Connect Bug:** Frontend incorrectly uses `axios.get(url, { params: {...} })` instead of `axios.post(url, body)` for getTable calls. This causes 404 errors. Fix: change to POST with body.
+**All three departments use `POST` with a JSON body for `getTable` calls.** Do not use `axios.get` with query params — the backend only has a `POST /getTable` route that reads from `req.body`.
 
 ---
 
@@ -535,6 +535,58 @@ Before uploading photos, the frontend compresses images:
 - Implemented in `FormStage.js` → `compressImage()` function (Auto Transformer)
 - Also implemented in `VConnected63MVATransformerForms.js` → `compressImage()` function (V Connect)
 - Applied to all photo uploads before sending to backend
+
+---
+
+### 13.11 Project Card — Last Submitted / Last Approved Display
+
+Each project card in `ETCAdminPanel.js` shows who last submitted and who last approved, along with the stage number and timestamp. Here is the complete data flow:
+
+**Step 1 — Data written to MongoDB on submit:**
+When a site engineer submits the last form of a stage, the frontend calls `POST /api/{dept}company/updateFormsCompleted` with:
+```js
+{
+  projectName, companyName, stage, formsCompleted,
+  status: "pending-approval",
+  userName,                          // logged-in user's name
+  eventAction: `Stage ${stage} Submitted`
+}
+```
+The backend stores:
+- `lastSubmittedUser` = userName
+- `lastSubmittedTimestamp` = current time
+- `submittedStages[stage]` = true
+
+**Step 2 — Data written to MongoDB on approve:**
+When ETC admin approves a stage, the frontend calls `POST /api/{dept}company/approveCompanyStage`. The backend stores:
+- `lastApprovedUser` = approving user's name
+- `lastApprovedTimestamp` = current time
+- `stageApprovals[stage]` = true
+- `stage` advances to `stage + 1`
+
+**Step 3 — Project card renders the stage number:**
+`ETCAdminPanel.js` does NOT rely on any string field to determine the stage number. Instead it derives it directly from the maps at render time:
+
+```js
+// Last submitted stage = highest stage where submittedStages[N] = true
+const lastSubmittedStage = Math.max(
+  ...Object.entries(Project.submittedStages || {})
+    .filter(([, v]) => v === true)
+    .map(([k]) => parseInt(k))
+);
+
+// Last approved stage = highest stage where stageApprovals[N] = true
+const lastApprovedStage = Math.max(
+  ...Object.entries(Project.stageApprovals || {})
+    .filter(([, v]) => v === true)
+    .map(([k]) => parseInt(k))
+);
+```
+
+**Why this approach:**
+- `stageApprovals` and `submittedStages` are the source of truth — they are set atomically by the backend and never overwritten by subsequent events
+- This works identically for Auto Transformer, V Connect, and Traction Transformer — no department-specific logic in the display code
+- The displayed result: `👤 Last Submitted: Stage 3 by Pranay Patil` and `✅ Last Approved: Stage 2 by wilfred anthony`
 
 ---
 
