@@ -3,8 +3,41 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import "./form-styles.css"
 import axios from "axios"
-import { BACKEND_API_BASE_URL } from "./constant"
+import { BACKEND_API_BASE_URL, ENABLE_IMAGE_COMPRESSION, IMAGE_COMPRESSION_MAX_WIDTH, IMAGE_COMPRESSION_QUALITY } from "./constant"
 import { getUserInfo } from "../utils/auth"
+
+// ─── Image compression utility ────────────────────────────────────────────────
+const compressImage = (file, maxWidth, quality) => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          const compressedFile = new File(
+            [blob],
+            file.name.replace(/\.[^.]+$/, ".jpg"),
+            { type: "image/jpeg" }
+          );
+          resolve(compressedFile);
+        },
+        "image/jpeg",
+        quality
+      );
+    };
+    img.onerror = () => resolve(file);
+    img.src = URL.createObjectURL(file);
+  });
+};
 
 // Signature Canvas Hook
 const useSignatureCanvas = (initialDataUrl) => {
@@ -149,23 +182,50 @@ const useSignatureCanvas = (initialDataUrl) => {
   }
 }
 
-// Enhanced Photo Upload Component
-const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = false }) => {
+// Enhanced Photo Upload Component — matches V Connect implementation
+const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = false, initialPhotos = {} }) => {
   const [cameraStream, setCameraStream] = useState(null)
   const [showCamera, setShowCamera] = useState(false)
+  const [currentPhotoKey, setCurrentPhotoKey] = useState(null)
+  const [capturedPhotos, setCapturedPhotos] = useState({})
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
 
-  const startCamera = async () => {
+  // Pre-populate previews from DB-loaded photo URLs
+  useEffect(() => {
+    if (initialPhotos && Object.keys(initialPhotos).length > 0) {
+      setCapturedPhotos((prev) => {
+        const merged = { ...prev }
+        Object.keys(initialPhotos).forEach((key) => {
+          if (!merged[key]) merged[key] = initialPhotos[key]
+        })
+        return merged
+      })
+    }
+  }, [initialPhotos])
+
+  // Assign srcObject + call play() AFTER the video element renders
+  useEffect(() => {
+    if (showCamera && cameraStream && videoRef.current) {
+      videoRef.current.srcObject = cameraStream
+      videoRef.current.play().catch((err) => console.error("Error playing video:", err))
+    }
+    return () => {
+      stopCamera()
+      Object.values(capturedPhotos).forEach((url) => {
+        if (url && url.startsWith("blob:")) URL.revokeObjectURL(url)
+      })
+    }
+  }, [showCamera, cameraStream])
+
+  const startCamera = async (photoKey) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
       })
       setCameraStream(stream)
       setShowCamera(true)
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-      }
+      setCurrentPhotoKey(photoKey)
     } catch (error) {
       console.error("Error accessing camera:", error)
       alert("Unable to access camera. Please check permissions.")
@@ -177,11 +237,12 @@ const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = fals
       cameraStream.getTracks().forEach((track) => track.stop())
       setCameraStream(null)
       setShowCamera(false)
+      setCurrentPhotoKey(null)
     }
   }
 
-  const capturePhoto = (photoKey) => {
-    if (videoRef.current && canvasRef.current) {
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current && currentPhotoKey) {
       const canvas = canvasRef.current
       const video = videoRef.current
       const context = canvas.getContext("2d")
@@ -193,10 +254,10 @@ const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = fals
       canvas.toBlob(
         (blob) => {
           if (blob) {
-            const file = new File([blob], `camera-capture-${Date.now()}.jpg`, {
-              type: "image/jpeg",
-            })
-            onPhotoChange(photoKey, file)
+            const file = new File([blob], `camera-capture-${Date.now()}.jpg`, { type: "image/jpeg" })
+            const previewUrl = URL.createObjectURL(blob)
+            setCapturedPhotos((prev) => ({ ...prev, [currentPhotoKey]: previewUrl }))
+            onPhotoChange(currentPhotoKey, file)
             stopCamera()
           }
         },
@@ -206,21 +267,33 @@ const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = fals
     }
   }
 
+  const removePhoto = (photoKey) => {
+    setCapturedPhotos((prev) => {
+      const next = { ...prev }
+      if (next[photoKey] && next[photoKey].startsWith("blob:")) URL.revokeObjectURL(next[photoKey])
+      delete next[photoKey]
+      return next
+    })
+    onPhotoChange(photoKey, null)
+  }
+
   const handleFileSelect = (photoKey, files) => {
     if (allowMultiple && files.length > 1) {
       Array.from(files).forEach((file, index) => {
-        onPhotoChange(`${photoKey}_${index}`, file)
+        const key = `${photoKey}_${index}`
+        const previewUrl = URL.createObjectURL(file)
+        setCapturedPhotos((prev) => ({ ...prev, [key]: previewUrl }))
+        onPhotoChange(key, file)
       })
     } else {
-      onPhotoChange(photoKey, files[0])
+      const file = files[0]
+      if (file) {
+        const previewUrl = URL.createObjectURL(file)
+        setCapturedPhotos((prev) => ({ ...prev, [photoKey]: previewUrl }))
+        onPhotoChange(photoKey, file)
+      }
     }
   }
-
-  useEffect(() => {
-    return () => {
-      stopCamera()
-    }
-  }, [])
 
   return (
     <div className="photo-upload-section">
@@ -248,7 +321,12 @@ const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = fals
           <canvas ref={canvasRef} style={{ display: "none" }} />
           <div style={{ marginTop: "20px" }}>
             <button
-              onClick={() => capturePhoto(photos[0]?.key)}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                capturePhoto()
+              }}
               className="capture-btn"
               style={{
                 padding: "10px 20px",
@@ -263,6 +341,7 @@ const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = fals
               📷 Capture Photo
             </button>
             <button
+              type="button"
               onClick={stopCamera}
               style={{
                 padding: "10px 20px",
@@ -285,10 +364,53 @@ const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = fals
           <div key={index} className="photo-upload-item">
             <label>{photo.label}</label>
 
+            {/* Preview with remove button */}
+            {capturedPhotos[photo.key] && (
+              <div style={{ marginTop: "10px", position: "relative" }}>
+                <img
+                  src={capturedPhotos[photo.key]}
+                  alt={`Preview for ${photo.label}`}
+                  style={{
+                    width: "150px",
+                    height: "100px",
+                    objectFit: "cover",
+                    borderRadius: "8px",
+                    border: "2px solid #4CAF50",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => removePhoto(photo.key)}
+                  style={{
+                    position: "absolute",
+                    top: "-5px",
+                    right: "-5px",
+                    backgroundColor: "#f44336",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: "20px",
+                    height: "20px",
+                    cursor: "pointer",
+                    fontSize: "12px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
             <div className="upload-options" style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
               <button
                 type="button"
-                onClick={startCamera}
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  startCamera(photo.key)
+                }}
                 className="camera-btn"
                 style={{
                   padding: "8px 12px",
@@ -353,7 +475,14 @@ const PhotoUploadSection = ({ title, photos, onPhotoChange, allowMultiple = fals
             <input
               type="file"
               accept="image/*"
-              onChange={(e) => onPhotoChange(photo.key, e.target.files[0])}
+              onChange={(e) => {
+                const file = e.target.files[0]
+                if (file) {
+                  const previewUrl = URL.createObjectURL(file)
+                  setCapturedPhotos((prev) => ({ ...prev, [photo.key]: previewUrl }))
+                  onPhotoChange(photo.key, file)
+                }
+              }}
               style={{ marginTop: "10px", width: "100%" }}
             />
           </div>
@@ -470,12 +599,15 @@ export function Stage1Form1({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage1Form1`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 1,
+            formNumber: 1,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for stage1Form1")
           setFormData(response.data.data)
@@ -802,7 +934,7 @@ function Stage1Form2({
     const fetchFormData = async () => {
       try {
         const response = await axios.post(
-          `${BACKEND_API_BASE_URL}/api/autoData/getTable`,
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
           {
             companyName: companyName,
             projectName: projectName,
@@ -1008,12 +1140,15 @@ function Stage1Form3({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage1Form3`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 1,
+            formNumber: 3,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for stage1Form3")
           setFormData(response.data.data)
@@ -1515,12 +1650,15 @@ function Stage1Form4({ onSubmit, onPrevious, initialData, isLastFormOfStage, com
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage1Form4`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 1,
+            formNumber: 4,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for stage1Form4")
           setFormData(response.data.data)
@@ -2535,12 +2673,15 @@ function Stage1Form5({ onSubmit, onPrevious, initialData, isLastFormOfStage, com
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage5Form1`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 5,
+            formNumber: 1,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for stage5Form1")
           setFormData(response.data.data)
@@ -3902,12 +4043,15 @@ function Stage1Form6({ onSubmit, onPrevious, initialData, isLastFormOfStage, com
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage1Form6`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 1,
+            formNumber: 6,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage1Form6")
           setFormData(response.data.data)
@@ -4429,12 +4573,15 @@ function Stage1Form7({ onSubmit, onPrevious, initialData, isLastFormOfStage, com
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage1Form7`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 1,
+            formNumber: 7,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage1Form7")
           setFormData(response.data.data)
@@ -4738,12 +4885,15 @@ export function Stage2Form1({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage2Form1`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 2,
+            formNumber: 1,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage2Form1")
           setFormData(response.data.data)
@@ -5104,12 +5254,15 @@ export function Stage2Form2({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage2Form2`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 2,
+            formNumber: 2,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage2Form2")
           setFormData(response.data.data)
@@ -5441,12 +5594,15 @@ export function Stage3Form1({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage3Form1`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 3,
+            formNumber: 1,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage3Form1")
           setFormData(response.data.data)
@@ -5832,12 +5988,15 @@ export function Stage4Form1({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage4Form1`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 4,
+            formNumber: 1,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage4Form1")
           setFormData(response.data.data)
@@ -6024,12 +6183,15 @@ export function Stage4Form2({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage4Form2`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 4,
+            formNumber: 2,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage4Form2")
           setFormData(response.data.data)
@@ -6317,12 +6479,15 @@ export function Stage4Form3({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage4Form3`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 4,
+            formNumber: 3,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage4Form3")
           setFormData(response.data.data)
@@ -6509,12 +6674,15 @@ export function Stage4Form4({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage4Form4`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 4,
+            formNumber: 4,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage4Form4")
           setFormData(response.data.data)
@@ -6818,12 +6986,15 @@ export function Stage5Form1({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage5Form1`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 5,
+            formNumber: 1,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage5Form1")
           setFormData(response.data.data)
@@ -7255,12 +7426,15 @@ export function Stage5Form2({ onSubmit, onPrevious, initialData, isLastFormOfSta
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage5Form2`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 5,
+            formNumber: 2,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage5Form2")
           setFormData(response.data.data)
@@ -7432,12 +7606,15 @@ export function Stage5Form3({ onSubmit, onPrevious, initialData, isLastFormOfSta
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage5Form3`, {
-          params: {
-            companyName: companyName,
-            projectName: projectName,
-          },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 5,
+            formNumber: 3,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage5Form3")
           setFormData(response.data.data)
@@ -7850,9 +8027,15 @@ export function Stage5Form4({ onSubmit, onPrevious, initialData, companyName, pr
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage5Form4`, {
-          params: { companyName, projectName },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 5,
+            formNumber: 4,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage5Form4")
           setFormData(response.data.data)
@@ -7963,9 +8146,15 @@ export function Stage5Form5({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage5Form5`, {
-          params: { companyName, projectName },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 5,
+            formNumber: 5,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage5Form5")
           setFormData(response.data.data)
@@ -8221,9 +8410,15 @@ export function Stage5Form6({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage5Form6`, {
-          params: { companyName, projectName },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 5,
+            formNumber: 6,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage5Form6")
           setFormData(response.data.data)
@@ -8489,9 +8684,15 @@ export function Stage5Form7({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage5Form7`, {
-          params: { companyName, projectName },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 5,
+            formNumber: 7,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage5Form7")
           setFormData((prev) => ({
@@ -9008,9 +9209,15 @@ export function Stage5Form8({ onSubmit, onPrevious, initialData, isLastFormOfSta
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage5Form8`, {
-          params: { companyName, projectName },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 5,
+            formNumber: 8,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage5Form8")
           setFormData((prev) => {
@@ -9858,9 +10065,15 @@ export function Stage6Form2({
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await axios.get(`${BACKEND_API_BASE_URL}/api/table/getTable/Stage6Form2`, {
-          params: { companyName, projectName },
-        })
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/tractionData/getTable`,
+          {
+            companyName,
+            projectName,
+            stage: 6,
+            formNumber: 2,
+          }
+        )
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for Stage6Form2")
           setFormData((prev) => ({ ...prev, ...response.data.data }))
@@ -10979,7 +11192,7 @@ const TractionTransformerForms = ({
   const CurrentFormComponent = currentStageForms[currentFormIndex]?.component
 
   const handleFormSubmit = async (data) => {
-    console.log("VConnected63MVA: handleFormSubmit → saving form data", data);
+    console.log("TractionTransformer: handleFormSubmit → saving form data", data);
 
     try {
       // Build FormData for API submission
@@ -10989,22 +11202,26 @@ const TractionTransformerForms = ({
       formDataToSend.append("stage", stage);
       formDataToSend.append("formNumber", currentFormIndex + 1);
 
-      // Process form data
-      Object.entries(data).forEach(([key, value]) => {
+      // Process form data — use for...of to support await inside
+      for (const [key, value] of Object.entries(data)) {
         if (key === "photos" && typeof value === "object") {
-          Object.entries(value).forEach(([photoKey, file]) => {
+          for (const [photoKey, file] of Object.entries(value)) {
             if (file instanceof File) {
-              formDataToSend.append(`photos[${photoKey}]`, file);
+              // Compress image before upload
+              const fileToUpload = ENABLE_IMAGE_COMPRESSION
+                ? await compressImage(file, IMAGE_COMPRESSION_MAX_WIDTH, IMAGE_COMPRESSION_QUALITY)
+                : file;
+              formDataToSend.append(`photos[${photoKey}]`, fileToUpload);
             }
-          });
+          }
         } else if (typeof value === "object") {
           formDataToSend.append(key, JSON.stringify(value));
         } else {
           formDataToSend.append(key, value ?? "");
         }
-      });
+      }
 
-      //Submit to API
+      // Submit to API
       await axios.post(
         `${BACKEND_API_BASE_URL}/api/tractionData/setTable`,
         formDataToSend,
@@ -11015,7 +11232,9 @@ const TractionTransformerForms = ({
 
       // Update form completion status
       const isLastFormOfStage = currentFormIndex === currentStageForms.length - 1;
-      
+      const userName = getUserInfo()?.name || "";
+      const now = new Date().toISOString();
+
       if (isLastFormOfStage) {
         await axios.post(
           `${BACKEND_API_BASE_URL}/api/tractioncompany/updateFormsCompleted`,
@@ -11025,6 +11244,8 @@ const TractionTransformerForms = ({
             formsCompleted: currentFormIndex + 1,
             status: "pending-approval",
             stage,
+            userName,
+            eventAction: `Stage ${stage} Submitted`,
           }
         );
 
@@ -11044,8 +11265,11 @@ const TractionTransformerForms = ({
                       ...project,
                       submittedStages: submittedStagesMap,
                       status: "pending-approval",
-                      lastSubmittedUser: getUserInfo()?.name || "",
-                      lastSubmittedTimestamp: new Date().toISOString(),
+                      lastSubmittedUser: userName,
+                      lastSubmittedTimestamp: now,
+                      lastEventUser: userName,
+                      lastEventAction: `Stage ${stage} Submitted`,
+                      lastEventTimestamp: now,
                     };
                   }
                   return project;
@@ -11062,6 +11286,8 @@ const TractionTransformerForms = ({
             projectName,
             companyName,
             formsCompleted: currentFormIndex + 1,
+            userName,
+            eventAction: "Forms Updated",
           }
         );
 
@@ -11075,8 +11301,11 @@ const TractionTransformerForms = ({
                   if (project.name === projectName) {
                     return {
                       ...project,
-                      lastSubmittedUser: getUserInfo()?.name || "",
-                      lastSubmittedTimestamp: new Date().toISOString(),
+                      lastSubmittedUser: userName,
+                      lastSubmittedTimestamp: now,
+                      lastEventUser: userName,
+                      lastEventAction: "Forms Updated",
+                      lastEventTimestamp: now,
                     };
                   }
                   return project;
