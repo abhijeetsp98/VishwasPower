@@ -287,6 +287,8 @@ PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 NODE_TLS_REJECT_UNAUTHORIZED=0
 ```
 
+> **Why `PUPPETEER_SKIP_DOWNLOAD=true`:** The VPS has SSL certificate chain issues that prevent Puppeteer from downloading Chrome during `npm install`. The fix is to skip the download and point Puppeteer at the system Chrome (`/usr/bin/google-chrome-stable`). Make sure `google-chrome-stable` is installed on any new VPS: `apt-get install -y google-chrome-stable`.
+
 ### VoltTrack Backend (`/var/www/volttrack-api/testing/.env`)
 ```
 PORT=4000
