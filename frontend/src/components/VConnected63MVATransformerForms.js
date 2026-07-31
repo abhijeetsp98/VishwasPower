@@ -11588,6 +11588,9 @@ const VConnected63MVATransformerForms = ({
       // 🔹 formsCompleted + project status logic
       const isLastFormOfStage = currentFormIndex === currentStageForms.length - 1;
       
+      const userName = getUserInfo()?.name || "";
+      const now = new Date().toISOString();
+
       if (isLastFormOfStage) {
         await axios.post(
           `${BACKEND_API_BASE_URL}/api/vconnectcompany/updateFormsCompleted`,
@@ -11597,6 +11600,8 @@ const VConnected63MVATransformerForms = ({
             formsCompleted: currentFormIndex + 1,
             status: "pending-approval",
             stage,
+            userName,
+            eventAction: `Stage ${stage} Submitted`,
           }
         );
 
@@ -11615,8 +11620,11 @@ const VConnected63MVATransformerForms = ({
                       ...project,
                       submittedStages: submittedStagesMap,
                       status: "pending-approval",
-                      lastSubmittedUser: getUserInfo()?.name || "",
-                      lastSubmittedTimestamp: new Date().toISOString(),
+                      lastSubmittedUser: userName,
+                      lastSubmittedTimestamp: now,
+                      lastEventUser: userName,
+                      lastEventAction: `Stage ${stage} Submitted`,
+                      lastEventTimestamp: now,
                     };
                   }
                   return project;
@@ -11633,6 +11641,8 @@ const VConnected63MVATransformerForms = ({
             projectName,
             companyName,
             formsCompleted: currentFormIndex + 1,
+            userName,
+            eventAction: "Forms Updated",
           }
         );
 
@@ -11646,8 +11656,11 @@ const VConnected63MVATransformerForms = ({
                   if (project.name === projectName) {
                     return {
                       ...project,
-                      lastSubmittedUser: getUserInfo()?.name || "",
-                      lastSubmittedTimestamp: new Date().toISOString(),
+                      lastSubmittedUser: userName,
+                      lastSubmittedTimestamp: now,
+                      lastEventUser: userName,
+                      lastEventAction: "Forms Updated",
+                      lastEventTimestamp: now,
                     };
                   }
                   return project;

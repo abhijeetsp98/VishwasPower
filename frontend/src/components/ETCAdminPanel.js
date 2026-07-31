@@ -2570,28 +2570,6 @@ const ETCAdminPanel = ({
         </table>
       </div>
 
-      {/* Last Event Info */}
-      {Project.lastEventAction && (
-        <div style={{
-          marginBottom: "16px",
-          padding: "6px 10px",
-          background: "#f0f9ff",
-          borderLeft: "3px solid #3b82f6",
-          borderRadius: "4px",
-          fontSize: "0.78rem",
-          color: "#374151",
-          lineHeight: "1.4",
-        }}>
-          📝 <strong>{Project.lastEventAction}</strong>
-          {Project.lastEventUser && <> by <strong>{Project.lastEventUser}</strong></>}
-          {Project.lastEventTimestamp && (
-            <> — {new Date(Project.lastEventTimestamp).toLocaleString("en-IN", {
-              day: "2-digit", month: "short", year: "numeric",
-              hour: "2-digit", minute: "2-digit"
-            })}</>
-          )}
-        </div>
-      )}
 
       {/* Test Buttons — tick marks driven by DB-backed Project.submittedForms */}
       {(() => {
@@ -3774,7 +3752,7 @@ const ETCAdminPanel = ({
                               fontWeight: "500",
                               whiteSpace: "nowrap",
                             }}>
-                              👤 Last Submitted: <strong style={{ color: "#1e3a8a" }}>{Project.lastSubmittedUser}</strong>
+                              👤 Last Submitted: {Project.lastEventAction?.includes("Submitted") && <strong style={{ color: "#374151" }}>{Project.lastEventAction.replace(" Submitted", "")} by </strong>}<strong style={{ color: "#1e3a8a" }}>{Project.lastSubmittedUser}</strong>
                             </span>
                             {Project.lastSubmittedTimestamp && (
                               <span style={{
@@ -3807,7 +3785,7 @@ const ETCAdminPanel = ({
                               fontWeight: "500",
                               whiteSpace: "nowrap",
                             }}>
-                              ✅ Last Approved: <strong style={{ color: "#059669" }}>{Project.lastApprovedUser}</strong>
+                              ✅ Last Approved: {Project.lastEventAction?.includes("Approved") && <strong style={{ color: "#374151" }}>{Project.lastEventAction.replace(" Approved", "")} by </strong>}<strong style={{ color: "#059669" }}>{Project.lastApprovedUser}</strong>
                             </span>
                             {Project.lastApprovedTimestamp && (
                               <span style={{
@@ -3859,27 +3837,6 @@ const ETCAdminPanel = ({
                       }</span>
                     </div>
 
-                    {Project.lastEventAction && (
-                      <div style={{
-                        marginTop: "8px",
-                        padding: "6px 10px",
-                        background: "#f0f9ff",
-                        borderLeft: "3px solid #3b82f6",
-                        borderRadius: "4px",
-                        fontSize: "0.78rem",
-                        color: "#374151",
-                        lineHeight: "1.4",
-                      }}>
-                        📝 <strong>{Project.lastEventAction}</strong>
-                        {Project.lastEventUser && <> by <strong>{Project.lastEventUser}</strong></>}
-                        {Project.lastEventTimestamp && (
-                          <> — {new Date(Project.lastEventTimestamp).toLocaleString("en-IN", {
-                            day: "2-digit", month: "short", year: "numeric",
-                            hour: "2-digit", minute: "2-digit"
-                          })}</>
-                        )}
-                      </div>
-                    )}
 
                     <div className="stage-management">
                       <h4>Stage Management:</h4>
