@@ -257,8 +257,9 @@ pm2 save                          # Save process list
 This is a **completely separate application** from the main VishwasPower app.
 
 - **Frontend:** Hosted on Hostinger at `https://test.apivishvaspower.com`
-- **Frontend repo:** `https://github.com/AkshayNinawe/Testing` (frontend engineer's repo)
+- **Frontend repo:** `https://github.com/AkshayNinawe/vp-testing` (frontend engineer's repo — **updated Aug 2026**, previously `AkshayNinawe/Testing`)
 - **Backend:** Running on VPS at port 4000, accessible via `https://vishwaspower.in/volttrack/api/`
+- **Backend repo:** `https://github.com/AkshayNinawe/vp-testing.git` (branch: `master`) — **local copy at `C:\Hobby\vp-testing`**
 - **Backend location on VPS:** `/var/www/volttrack-api/testing/`
 - **Database:** MongoDB `volttrack` DB (separate from main app's `VishwasPower` DB)
 
@@ -266,6 +267,7 @@ This is a **completely separate application** from the main VishwasPower app.
 - Uses `username` (not email) + `password` + `role`
 - Roles: `Tester`, `Reviewer`, `Authorizer` (3-tier approval workflow)
 - JWT tokens stored in localStorage as `volttrack_token_v1`
+- **Bootstrap rule:** The very first account registered must be an `Authorizer`. After that, only an `Authorizer` (with valid JWT) can create `Tester` or `Reviewer` accounts. Check registration status via `GET /api/auth/registration-status`.
 
 ### VoltTrack Transformer Types
 - Capacities: `8MVA`, `12.3MVA`, `16.5MVA`
@@ -297,6 +299,10 @@ JWT_SECRET=volttrack-super-secret-change-this-2026
 CORS_ORIGINS=https://test.apivishvaspower.com
 API_BASE_PATH=/volttrack
 ```
+
+> **`API_BASE_PATH=/volttrack`** — This mounts the API at both `/api` (direct) and `/volttrack/api` (via Nginx reverse proxy). The Nginx config proxies `https://vishwaspower.in/volttrack/api/` → `http://localhost:4000/volttrack/api/`. Do NOT change this value on the VPS.
+
+> **`.env` is NOT in git** (gitignored). If you re-clone the repo, you must manually restore `.env` from backup. Always back up with: `cp /var/www/volttrack-api/testing/.env /root/volttrack-api.env.backup` before any destructive operation.
 
 ---
 
@@ -687,3 +693,362 @@ The main backend also has testing department routes that are currently hidden (`
 /api/volttrack/  (old VoltTrack routes — now superseded by separate volttrack-api on port 4000)
 ```
 These routes exist in the backend but the UI doesn't show them. Do not remove them as they may have existing data.
+
+---
+
+## 16. VoltTrack Backend — Breaking Changes (Old → New, Aug 2026)
+
+On **19 Aug 2026**, the VoltTrack backend was migrated from the old repo (`akshayninawe/testing`, branch `main`) to the new repo (`AkshayNinawe/vp-testing`, branch `master`). The following breaking changes were introduced. The **frontend engineer** must update the Hostinger frontend to match.
+
+---
+
+### 16.1 Job Name Normalization (NEW — Breaking)
+
+**Old behavior:** Backend stored whatever name the frontend sent (e.g., `"V/M/ 2061"` with space).
+
+**New behavior:** `normalizeJobName()` is applied before saving. It:
+- Strips leading/trailing spaces
+- Enforces `V/M/` prefix (no space after `/`)
+- Example: `"V/M/ 2061"` → `"V/M/2061"`, `"2061"` → `"V/M/2061"`
+
+**Frontend must:** Always send job names in `V/M/{number}` format (no space after last `/`). The backend will normalize, but the frontend display must match what the backend returns.
+
+---
+
+### 16.2 Registration Flow Changed (NEW — Breaking)
+
+**Old behavior:** Any client could call `POST /api/auth/register` with any role freely.
+
+**New behavior:**
+1. Call `GET /api/auth/registration-status` first:
+   ```json
+   { "canBootstrapAuthorizer": true, "staffRegistrationRequiresAuthorizer": true }
+   ```
+2. If `canBootstrapAuthorizer: true` → first account must be `Authorizer` (no token needed)
+3. If `canBootstrapAuthorizer: false` → only an `Authorizer` with a valid JWT can register `Tester`/`Reviewer` accounts. Send `Authorization: Bearer <token>` header.
+4. Authorizers cannot register other Authorizers (only Tester/Reviewer).
+
+**Frontend must:** Implement the registration-status check and pass the Authorizer's JWT when creating staff accounts.
+
+---
+
+### 16.3 `recomputeJobStatus` — Stricter Completion Criteria (Breaking for Existing Data)
+
+**Old behavior:** Job status = `"Completed"` when ALL tests have `stage === "Authorized"`.
+
+**New behavior:** Job status = `"Completed"` only when ALL tests have `stage === "Authorized"` **AND** each test has its authorizer sign-off name filled in (`authorized_by` field, or `pct_authorized_by` for POST-CONNECTION TEST, `pt_authorized_by` for POST-TANKING TEST).
+
+**Impact on existing data:** Jobs that were previously `"Completed"` in the DB may now return as `"Processing"` if the authorizer name was not saved. The frontend must handle this gracefully (don't assume old "Completed" jobs stay completed).
+
+---
+
+### 16.4 Observation Save — Role-Based Field Locks (NEW — Breaking)
+
+**Old behavior:** `PATCH /api/jobs/:jobId/tests/:testId/observation` saved the entire `observationData` object as-is.
+
+**New behavior:** `applyRoleSignOffLocks()` is applied server-side:
+- `Reviewer` (`Admin_Reviewed`) cannot change Technician or Authorizer sign-off fields
+- `Tester` (`Admin_Tested`) cannot change Reviewer or Authorizer sign-off fields
+- Locked fields are silently restored to their previous values
+
+**Frontend must:** Do NOT rely on sending all fields and having them all saved. Each role should only send the fields it owns. The backend will protect the rest.
+
+---
+
+### 16.5 Stage Promotion — Mandatory Sign-Off Validation (NEW — Breaking)
+
+**Old behavior:** A test could be promoted to any stage without any field validation.
+
+**New behavior:**
+- Promoting to `Reviewed`: `Select Technician` field must be filled (returns `403` if empty)
+- Promoting to `Authorized`: `Select Reviewer` field must be filled (returns `403` if empty)
+
+The specific field keys per test:
+| Test Name | Technician Key | Reviewer Key |
+|---|---|---|
+| Most tests | `tested_by` | `reviewed_by` |
+| POST-CONNECTION TEST | `pct_tested_by` | `pct_reviewed_by` |
+| POST-TANKING TEST | `pt_tested_by` | `pt_reviewed_by` |
+| FINAL LV TEST REPORT | `offered_by` | `tested_by` |
+
+**Frontend must:** Validate that the required sign-off person is selected before calling the stage promotion endpoint. Show a clear error message if not.
+
+---
+
+### 16.6 New Endpoints Added
+
+| Endpoint | Description | Auth Required |
+|---|---|---|
+| `GET /api/auth/registration-status` | Check if bootstrap Authorizer needed | None |
+| `GET /api/users` | List all registered users | Authorizer only |
+| `PATCH /api/users/:userId` | Edit user (name, username, role, password) | Authorizer only |
+| `DELETE /api/users/:userId` | Delete a user | Authorizer only |
+| `DELETE /api/jobs/:jobId` | Delete a job | Authorizer only |
+| `PATCH /api/jobs/:jobId/tests/:testId/unaccept` | Undo accept on a test offer | Reviewer/Authorizer |
+
+---
+
+### 16.7 Sign-Off Date Stamping Changed
+
+**Old behavior:** Date fields (`tested_at`, `reviewed_at`, etc.) were stamped inline in `index.ts` with simple key deletion on reject.
+
+**New behavior:** `stampPrefixedSignOffDates()` and `clearSignOffOnReject()` from `signOff.ts` handle all date stamping. The logic is more comprehensive — covers PCT, PT, and FINAL LV prefixed keys.
+
+**Frontend must:** Ensure it reads both `_at` and `_date` variants of date fields (e.g., `tested_at` and `tested_date`) as the backend may write either depending on the test type.
+
+---
+
+## 17. VoltTrack Backend — Deployment Runbook
+
+### 17.1 Normal Deployment (Code Update)
+
+```bash
+# 1. SSH into VPS
+ssh root@147.93.98.68
+
+# 2. Go to backend directory
+cd /var/www/volttrack-api/testing
+
+# 3. Pull latest code
+git pull origin master
+
+# 4. Install any new dependencies
+npm install
+
+# 5. Restart PM2
+pm2 restart volttrack-api
+pm2 save
+
+# 6. Verify
+pm2 logs volttrack-api --lines 20
+# Expected: "VoltTrack API running on http://localhost:4000"
+#           "Also mounted at /volttrack/api"
+#           "MongoDB connected: volttrack"
+
+# 7. Health check
+curl http://localhost:4000/api/health
+# Expected: {"ok":true,"service":"volttrack-api","db":"mongodb"}
+```
+
+---
+
+### 17.2 Full Re-Clone (Repo Change or Corruption)
+
+Use this when the git remote needs to change or the directory is corrupted.
+
+```bash
+# 1. ALWAYS back up .env first
+cp /var/www/volttrack-api/testing/.env /root/volttrack-api.env.backup
+cat /root/volttrack-api.env.backup   # verify it looks correct
+
+# 2. Stop PM2
+pm2 stop volttrack-api
+
+# 3. Delete old code and clone fresh
+cd /var/www/volttrack-api
+rm -rf testing
+git clone https://github.com/AkshayNinawe/vp-testing.git testing
+cd testing
+
+# 4. Restore .env
+cp /root/volttrack-api.env.backup .env
+
+# 5. Install dependencies
+npm install
+
+# 6. Restart PM2
+pm2 restart volttrack-api
+pm2 save
+
+# 7. Verify (same as above)
+pm2 logs volttrack-api --lines 20
+curl http://localhost:4000/api/health
+```
+
+> ⚠️ **Data is NEVER at risk** — MongoDB data lives in `/var/lib/mongodb/` and is never touched by these operations.
+
+---
+
+### 17.3 Checking MongoDB Data
+
+```bash
+# Open MongoDB shell
+mongosh
+
+# Switch to volttrack DB
+use volttrack
+
+# Count records
+db.jobs.countDocuments()
+db.users.countDocuments()
+
+# View recent jobs (name, status, type)
+db.jobs.find({}, {name:1, status:1, type:1, capacity:1, createdAt:1}).sort({createdAt:-1}).limit(10).pretty()
+
+# View users (no passwords)
+db.users.find({}, {passwordHash:0}).pretty()
+
+# Exit
+exit
+```
+
+---
+
+### 17.4 PM2 Quick Reference
+
+```bash
+pm2 list                          # Show all processes + status
+pm2 restart volttrack-api         # Restart VoltTrack backend
+pm2 stop volttrack-api            # Stop VoltTrack backend
+pm2 logs volttrack-api --lines 50 # View last 50 log lines
+pm2 logs volttrack-api --err      # View error logs only
+pm2 save                          # Save process list (survives reboot)
+pm2 startup                       # Generate startup script (run once on new VPS)
+```
+
+---
+
+## 18. VoltTrack Frontend — POC Handoff Document
+
+> **For:** Frontend engineer (Hostinger deployment at `https://test.apivishvaspower.com`)  
+> **Date:** 19 Aug 2026  
+> **Context:** The VoltTrack backend has been updated to a new codebase (`AkshayNinawe/vp-testing`). The frontend must be updated to match the new API contract.
+
+---
+
+### 18.1 API Base URL (No Change)
+
+The backend is still accessible at the same URL:
+```
+https://vishwaspower.in/volttrack/api
+```
+No change needed here.
+
+---
+
+### 18.2 Registration Flow — MUST UPDATE
+
+The old open registration is gone. Implement this flow:
+
+**Step 1 — Check registration status (new endpoint):**
+```
+GET /api/auth/registration-status
+Response: { canBootstrapAuthorizer: boolean, staffRegistrationRequiresAuthorizer: boolean }
+```
+
+**Step 2a — If `canBootstrapAuthorizer: true`:**
+- Show a special "Setup First Authorizer" screen
+- Call `POST /api/auth/register` with `{ name, username, password, role: "Authorizer" }` — NO auth header needed
+- Only `Authorizer` role is accepted here
+
+**Step 2b — If `canBootstrapAuthorizer: false`:**
+- Only an Authorizer can register new staff
+- The Authorizer must be logged in
+- Call `POST /api/auth/register` with `Authorization: Bearer <authorizer_token>` header
+- Only `Tester` or `Reviewer` roles are accepted (not another Authorizer)
+
+**Error responses to handle:**
+- `403` — "First account must be an Authorizer" (bootstrap case, wrong role)
+- `403` — "Only an Authorizer can register Tester and Reviewer accounts" (no token)
+- `409` — "Username already exists"
+
+---
+
+### 18.3 Job Creation — Name Format
+
+The backend now normalizes job names. Always send names in `V/M/{number}` format:
+```json
+POST /api/jobs
+{ "name": "V/M/2061", "capacity": "8MVA", "type": "Auto" }
+```
+The backend will store `"V/M/2061"` (no space after last `/`). Display the name exactly as returned by the API — do not add spaces.
+
+**Validation added:** If the name resolves to just `"V/M/"` (empty suffix), the backend returns `400`. Show a "Job name is required" error.
+
+---
+
+### 18.4 Observation Save — Role Locks
+
+When saving observation data (`PATCH /api/jobs/:jobId/tests/:testId/observation`), the backend now enforces role-based field locks server-side:
+
+- **Tester** can only write: `tested_by`, `tested_at`, `tested_date`, and all test-specific observation fields
+- **Reviewer** can only write: `reviewed_by`, `reviewed_at`, `reviewed_date` (cannot overwrite Technician or Authorizer fields)
+- **Authorizer** can write all fields
+
+The frontend should already be locking these fields in the UI. The backend is now a second layer of enforcement.
+
+---
+
+### 18.5 Stage Promotion — Mandatory Validation
+
+Before calling `PATCH /api/jobs/:jobId/tests/:testId/stage` with `action: "promote"`:
+
+| Promoting to | Required field | Error if missing |
+|---|---|---|
+| `Reviewed` | Technician sign-off selected | `403: "Select Technician is mandatory before submitting to Reviewer."` |
+| `Authorized` | Reviewer sign-off selected | `403: "Select Reviewer is mandatory before submitting to Authorizer."` |
+
+The technician/reviewer field keys vary by test:
+```
+Most tests:           tested_by / reviewed_by
+POST-CONNECTION TEST: pct_tested_by / pct_reviewed_by
+POST-TANKING TEST:    pt_tested_by / pt_reviewed_by
+FINAL LV TEST REPORT: offered_by / tested_by
+```
+
+---
+
+### 18.6 Job Status — Stricter "Completed" Criteria
+
+A job is now `"Completed"` only when ALL tests are `Authorized` AND each test has an authorizer name filled in. Previously, `Authorized` stage alone was enough.
+
+The frontend should use the `status` field returned by the API — do not compute it client-side.
+
+---
+
+### 18.7 New Endpoints to Integrate (Authorizer UI)
+
+These endpoints enable an Authorizer to manage staff and jobs from the UI:
+
+```
+GET    /api/users                    → List all users (name, username, role)
+PATCH  /api/users/:userId            → Edit user { name, username, role, password? }
+DELETE /api/users/:userId            → Delete user (cannot delete self or last Authorizer)
+DELETE /api/jobs/:jobId              → Delete a job
+PATCH  /api/jobs/:jobId/tests/:testId/unaccept  → Undo accept on a test offer
+```
+
+All require `Authorization: Bearer <authorizer_token>` header.
+
+---
+
+### 18.8 Sign-Off Date Fields — Read Both Variants
+
+The backend may write date fields in two formats depending on the test type. Always read both:
+```js
+const date = observationData.tested_at || observationData.tested_date || '';
+const pctDate = observationData.pct_tested_date || observationData.pct_tested_at || '';
+```
+
+---
+
+### 18.9 Summary Checklist for Frontend POC
+
+- [ ] Implement `GET /api/auth/registration-status` check before showing registration form
+- [ ] Update registration to pass Authorizer JWT when creating Tester/Reviewer accounts
+- [ ] Update job name display to match normalized format (`V/M/2061` not `V/M/ 2061`)
+- [ ] Handle `403` errors on stage promotion (missing sign-off person)
+- [ ] Do not compute job `status` client-side — use API response
+- [ ] Read both `_at` and `_date` variants of sign-off date fields
+- [ ] Add Authorizer UI for user management (`GET/PATCH/DELETE /api/users`)
+- [ ] Add Authorizer UI for job deletion (`DELETE /api/jobs/:jobId`)
+- [ ] Add unaccept test functionality (`PATCH .../unaccept`)
+
+---
+
+## 19. Incident & Change Log
+
+| Date | Who | What |
+|---|---|---|
+| 19 Aug 2026 | Backend team | Migrated VoltTrack backend from `akshayninawe/testing` (branch `main`) to `AkshayNinawe/vp-testing` (branch `master`). Fresh clone at `/var/www/volttrack-api/testing/`. `.env` preserved. MongoDB data (51 jobs, 11 users) intact. |
+| 19 Aug 2026 | Backend team | Identified breaking changes between old and new VoltTrack backend. Frontend POC handoff document created (see Section 18). |
