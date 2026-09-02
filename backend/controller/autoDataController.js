@@ -35,7 +35,8 @@ export const getStageTableData = async (req, res) => {
   try {
     const { projectName, companyName, stage } = req.body;
     
-    if (!projectName || !companyName || !stage) {
+    // Note: stage can be 0 (Unloading), so use == null instead of !stage
+    if (!projectName || !companyName || stage == null || stage === '') {
       return res.status(400).json({ 
         message: "Project name, company name, and stage are required." 
       });
@@ -123,7 +124,8 @@ export const getTableData = async (req, res) => {
   try {
     const { projectName, companyName, stage, formNumber } = req.body;
     
-    if (!projectName || !companyName || !stage || !formNumber) {
+    // Note: stage can be 0 (Unloading), so use == null instead of !stage
+    if (!projectName || !companyName || stage == null || stage === '' || !formNumber) {
       return res.status(400).json({ 
         message: "Project name, company name, stage, and form number are required." 
       });
@@ -198,7 +200,8 @@ export const setTableData = async (req, res) => {
   try {
     const { projectName, companyName, formNumber, stage } = req.body;
 
-    if (!projectName || !companyName || !formNumber || !stage) {
+    // Note: stage can be 0 (Unloading), so use == null instead of !stage
+    if (!projectName || !companyName || !formNumber || stage == null || stage === '') {
       return res.status(400).json({ 
         message: "Project name, company name, form number, and stage are required." 
       });
