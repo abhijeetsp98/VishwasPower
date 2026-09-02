@@ -79,6 +79,25 @@ const FormStage = ({
     },
   };
 
+  // Stage 0 Forms - Unloading Checklist
+  const stage0Forms = [
+    {
+      id: "site-condition-unloading",
+      title: "Site Condition at Time of Unloading",
+      component: SiteConditionUnloadingForm,
+    },
+    {
+      id: "main-tank-checklist",
+      title: "Main Tank Checklist",
+      component: MainTankChecklistForm,
+    },
+    {
+      id: "accessories-checking",
+      title: "Protocol for Accessories Checking",
+      component: AccessoriesCheckingForm,
+    },
+  ];
+
   const stage1Forms = [
     {
       id: "name-plate-details",
@@ -190,6 +209,8 @@ const FormStage = ({
 
   const getFormsForStage = (stageNumber) => {
     switch (stageNumber) {
+      case 0:
+        return stage0Forms;
       case 1:
         return stage1Forms;
       case 2:
@@ -292,6 +313,7 @@ const FormStage = ({
               companyProjects: prevCompany.companyProjects.map((project) => {
                 if (project.name === projectName) {
                   const submittedStagesMap = {};
+                  submittedStagesMap["0"] = stage === 0; // Stage 0 (Unloading)
                   for (let i = 1; i <= 6; i++) {
                     submittedStagesMap[i.toString()] = i <= stage;
                   }
@@ -8644,5 +8666,790 @@ function WorkCompletionReportForm({
     </div>
   );
 }
+
+// ─── STAGE 0 FORM COMPONENTS — Unloading Checklist ───────────────────────────
+
+const UNLOADING_STATUS_OPTIONS = ["", "OK", "Not OK", "NA"];
+
+// Form 1: Site Condition at Time of Unloading
+function SiteConditionUnloadingForm({
+  onSubmit,
+  onPrevious,
+  initialData,
+  isLastFormOfStage,
+  companyName,
+  projectName,
+}) {
+  const emptyRow = { status: "", remarks: "", date: "", checkedBy: "" };
+  const [formData, setFormData] = useState({
+    vpesRepresentative: "",
+    date: "",
+    customerRepresentative: "",
+    contactNo: "",
+    routeCondition: { ...emptyRow },
+    siteCondition: { ...emptyRow },
+    approachRoad: { ...emptyRow },
+    boundaryWall: { ...emptyRow },
+    securityGuard: { ...emptyRow },
+    vpesSignature: "",
+    vpesSignatureDate: "",
+    customerSignature: "",
+    customerSignatureDate: "",
+    photos: {},
+    ...initialData,
+  });
+
+  useEffect(() => {
+    const fetchFormData = async () => {
+      try {
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/autoData/getTable`,
+          { companyName, projectName, stage: 0, formNumber: 1 }
+        );
+        if (response.data?.data) setFormData(response.data.data);
+      } catch (error) {
+        console.error("Error fetching stage0 form1:", error);
+      }
+    };
+    fetchFormData();
+  }, [projectName, companyName]);
+
+  const updateRow = (rowKey, field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [rowKey]: { ...(prev[rowKey] || {}), [field]: value },
+    }));
+  };
+
+  const handlePhotoChange = (key, file) => {
+    setFormData((prev) => ({ ...prev, photos: { ...prev.photos, [key]: file } }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  const checklistRows = [
+    { srNo: 1, label: "Route condition", rowKey: "routeCondition" },
+    { srNo: 2, label: "Site condition", rowKey: "siteCondition" },
+    { srNo: 3, label: "Approach road", rowKey: "approachRoad" },
+    { srNo: 4, label: "Boundary wall", rowKey: "boundaryWall" },
+    { srNo: 5, label: "Security guard", rowKey: "securityGuard" },
+  ];
+
+  const photoRequirements = [
+    { key: "routeConditionPhoto", label: "Route Condition" },
+    { key: "siteConditionPhoto", label: "Site Condition" },
+    { key: "approachRoadPhoto", label: "Approach Road" },
+    { key: "boundaryWallPhoto", label: "Boundary Wall" },
+  ];
+
+  return (
+    <form onSubmit={handleSubmit} className="form-container">
+      <div className="company-header">
+        <h2>SITE CONDITION AT TIME OF UNLOADING</h2>
+      </div>
+
+      <table className="form-table">
+        <tbody>
+          <tr>
+            <td><strong>VPES Representative</strong></td>
+            <td>
+              <input
+                type="text"
+                value={formData.vpesRepresentative}
+                onChange={(e) => setFormData({ ...formData, vpesRepresentative: e.target.value })}
+              />
+            </td>
+            <td><strong>Date</strong></td>
+            <td>
+              <input
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              />
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Customer Representative</strong></td>
+            <td>
+              <input
+                type="text"
+                value={formData.customerRepresentative}
+                onChange={(e) => setFormData({ ...formData, customerRepresentative: e.target.value })}
+              />
+            </td>
+            <td><strong>Contact No.</strong></td>
+            <td>
+              <input
+                type="text"
+                value={formData.contactNo}
+                onChange={(e) => setFormData({ ...formData, contactNo: e.target.value })}
+              />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4 style={{ marginTop: "20px" }}>Check Points</h4>
+      <table className="form-table">
+        <thead>
+          <tr>
+            <th>Sr No</th>
+            <th>Check Points</th>
+            <th>Status</th>
+            <th>Remarks</th>
+            <th>Date</th>
+            <th>Checked By</th>
+          </tr>
+        </thead>
+        <tbody>
+          {checklistRows.map(({ srNo, label, rowKey }) => (
+            <tr key={rowKey}>
+              <td style={{ textAlign: "center" }}>{srNo}</td>
+              <td><strong>{label}</strong></td>
+              <td>
+                <select
+                  value={(formData[rowKey] || {}).status || ""}
+                  onChange={(e) => updateRow(rowKey, "status", e.target.value)}
+                >
+                  {UNLOADING_STATUS_OPTIONS.map((o) => (
+                    <option key={o} value={o}>{o || "Select"}</option>
+                  ))}
+                </select>
+              </td>
+              <td>
+                <input
+                  type="text"
+                  value={(formData[rowKey] || {}).remarks || ""}
+                  onChange={(e) => updateRow(rowKey, "remarks", e.target.value)}
+                />
+              </td>
+              <td>
+                <input
+                  type="date"
+                  value={(formData[rowKey] || {}).date || ""}
+                  onChange={(e) => updateRow(rowKey, "date", e.target.value)}
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  value={(formData[rowKey] || {}).checkedBy || ""}
+                  onChange={(e) => updateRow(rowKey, "checkedBy", e.target.value)}
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <PhotoUploadSection
+        title="Route Condition, Site Condition, Approach Road, Boundary Wall"
+        photos={photoRequirements}
+        onPhotoChange={handlePhotoChange}
+        initialPhotos={formData.photos}
+      />
+
+      <div className="signature-section" style={{ display: "flex", gap: "40px", marginTop: "30px", flexWrap: "wrap" }}>
+        <div className="signature-box">
+          <label><strong>VPES Representative</strong></label>
+          <SignatureBox
+            label="Sign"
+            nameValue=""
+            onNameChange={() => {}}
+            onSignatureChange={(sig) => setFormData((prev) => ({ ...prev, vpesSignature: sig }))}
+            initialSignature={formData.vpesSignature}
+          />
+          <div style={{ marginTop: "10px" }}>
+            <strong>Date: </strong>
+            <input
+              type="date"
+              value={formData.vpesSignatureDate}
+              onChange={(e) => setFormData({ ...formData, vpesSignatureDate: e.target.value })}
+            />
+          </div>
+        </div>
+        <div className="signature-box">
+          <label><strong>Customer Representative</strong></label>
+          <SignatureBox
+            label="Sign"
+            nameValue=""
+            onNameChange={() => {}}
+            onSignatureChange={(sig) => setFormData((prev) => ({ ...prev, customerSignature: sig }))}
+            initialSignature={formData.customerSignature}
+          />
+          <div style={{ marginTop: "10px" }}>
+            <strong>Date: </strong>
+            <input
+              type="date"
+              value={formData.customerSignatureDate}
+              onChange={(e) => setFormData({ ...formData, customerSignatureDate: e.target.value })}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="form-actions" style={{ marginTop: "30px" }}>
+        {onPrevious && (
+          <button type="button" onClick={onPrevious} className="prev-btn">
+            Previous Form
+          </button>
+        )}
+        <button type="submit" className="submit-btn">
+          Save & Next
+        </button>
+      </div>
+    </form>
+  );
+}
+
+// Form 2: Main Tank Checklist
+function MainTankChecklistForm({
+  onSubmit,
+  onPrevious,
+  initialData,
+  isLastFormOfStage,
+  companyName,
+  projectName,
+}) {
+  const emptyRow = { status: "", remarks: "", date: "", checkedBy: "" };
+  const [formData, setFormData] = useState({
+    entryToTSS: { ...emptyRow },
+    trailerMovement: { ...emptyRow },
+    hydraBoomMovement: { ...emptyRow },
+    unloadingPoint: { ...emptyRow },
+    dateOfTrailerReached: { ...emptyRow },
+    dateOfUnloading: { ...emptyRow },
+    aestheticRemarks: { ...emptyRow },
+    wheelLocking: { ...emptyRow },
+    allSealChecks: { ...emptyRow },
+    afterUnloadingPhotos: { ...emptyRow },
+    togLevelCheck: { ...emptyRow },
+    trsCoveringPhoto: { ...emptyRow },
+    signAndStampCopy: { ...emptyRow },
+    vpesSignature: "",
+    vpesSignatureDate: "",
+    representativeSignature: "",
+    representativeSignatureDate: "",
+    photos: {},
+    ...initialData,
+  });
+
+  useEffect(() => {
+    const fetchFormData = async () => {
+      try {
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/autoData/getTable`,
+          { companyName, projectName, stage: 0, formNumber: 2 }
+        );
+        if (response.data?.data) setFormData(response.data.data);
+      } catch (error) {
+        console.error("Error fetching stage0 form2:", error);
+      }
+    };
+    fetchFormData();
+  }, [projectName, companyName]);
+
+  const updateRow = (rowKey, field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [rowKey]: { ...(prev[rowKey] || {}), [field]: value },
+    }));
+  };
+
+  const handlePhotoChange = (key, file) => {
+    setFormData((prev) => ({ ...prev, photos: { ...prev.photos, [key]: file } }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  // Rows: label, rowKey, statusType: "select" | "date" | "text"
+  const checklistRows = [
+    { srNo: 1, label: "Entry to TSS/SP/SSP/SS", rowKey: "entryToTSS", statusType: "select" },
+    { srNo: 2, label: "Trailer Movement suitable or not", rowKey: "trailerMovement", statusType: "select" },
+    { srNo: 3, label: "Hydra/Boom Movement", rowKey: "hydraBoomMovement", statusType: "select" },
+    { srNo: 4, label: "Unloading Point", rowKey: "unloadingPoint", statusType: "select" },
+    { srNo: 5, label: "Date of Trailer Reached", rowKey: "dateOfTrailerReached", statusType: "date" },
+    { srNo: 6, label: "Date of Unloading", rowKey: "dateOfUnloading", statusType: "date" },
+    { srNo: 7, label: "Aesthetic / Any Remarks", rowKey: "aestheticRemarks", statusType: "text" },
+    { srNo: 8, label: "Wheel Locking", rowKey: "wheelLocking", statusType: "select" },
+    { srNo: 9, label: "All Seal Checks", rowKey: "allSealChecks", statusType: "select" },
+    { srNo: 10, label: "After unloading photos", rowKey: "afterUnloadingPhotos", statusType: "none" },
+    { srNo: 11, label: "TOG Level Check as per dispatch", rowKey: "togLevelCheck", statusType: "select" },
+    { srNo: 12, label: "After All check TRS Covering photo", rowKey: "trsCoveringPhoto", statusType: "none" },
+    { srNo: 13, label: "Sign and Stamp Copy of all documents as per dispatch", rowKey: "signAndStampCopy", statusType: "select" },
+  ];
+
+  const photoRequirements = [
+    { key: "wheelLockingPhoto", label: "Wheel Locking (all 4)" },
+    { key: "afterUnloadingPhoto", label: "After Unloading" },
+    { key: "trsCoveringPhoto", label: "TRS Covering" },
+    { key: "documentsPhoto", label: "Sign & Stamp Documents" },
+  ];
+
+  const renderStatusCell = (row) => {
+    const val = (formData[row.rowKey] || {}).status || "";
+    if (row.statusType === "select") {
+      return (
+        <select value={val} onChange={(e) => updateRow(row.rowKey, "status", e.target.value)}>
+          {UNLOADING_STATUS_OPTIONS.map((o) => (
+            <option key={o} value={o}>{o || "Select"}</option>
+          ))}
+        </select>
+      );
+    }
+    if (row.statusType === "date") {
+      return (
+        <input
+          type="date"
+          value={val}
+          onChange={(e) => updateRow(row.rowKey, "status", e.target.value)}
+        />
+      );
+    }
+    if (row.statusType === "text") {
+      return (
+        <input
+          type="text"
+          placeholder="Mention in details"
+          value={val}
+          onChange={(e) => updateRow(row.rowKey, "status", e.target.value)}
+        />
+      );
+    }
+    return <span>—</span>;
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="form-container">
+      <div className="company-header">
+        <h2>MAIN TANK CHECKLIST</h2>
+      </div>
+
+      <table className="form-table">
+        <thead>
+          <tr>
+            <th>Sr No</th>
+            <th>Checklist Item</th>
+            <th>Status</th>
+            <th>Remarks</th>
+            <th>Date</th>
+            <th>Checked By</th>
+          </tr>
+        </thead>
+        <tbody>
+          {checklistRows.map((row) => (
+            <tr key={row.rowKey}>
+              <td style={{ textAlign: "center" }}>{row.srNo}</td>
+              <td><strong>{row.label}</strong></td>
+              <td>{renderStatusCell(row)}</td>
+              <td>
+                <input
+                  type="text"
+                  value={(formData[row.rowKey] || {}).remarks || ""}
+                  onChange={(e) => updateRow(row.rowKey, "remarks", e.target.value)}
+                />
+              </td>
+              <td>
+                <input
+                  type="date"
+                  value={(formData[row.rowKey] || {}).date || ""}
+                  onChange={(e) => updateRow(row.rowKey, "date", e.target.value)}
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  value={(formData[row.rowKey] || {}).checkedBy || ""}
+                  onChange={(e) => updateRow(row.rowKey, "checkedBy", e.target.value)}
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <PhotoUploadSection
+        title="Wheel Locking, After Unloading, TRS Covering, Documents"
+        photos={photoRequirements}
+        onPhotoChange={handlePhotoChange}
+        initialPhotos={formData.photos}
+      />
+
+      <div className="signature-section" style={{ display: "flex", gap: "40px", marginTop: "30px", flexWrap: "wrap" }}>
+        <div className="signature-box">
+          <label><strong>VPES Representative</strong></label>
+          <SignatureBox
+            label="Sign"
+            nameValue=""
+            onNameChange={() => {}}
+            onSignatureChange={(sig) => setFormData((prev) => ({ ...prev, vpesSignature: sig }))}
+            initialSignature={formData.vpesSignature}
+          />
+          <div style={{ marginTop: "10px" }}>
+            <strong>Date: </strong>
+            <input
+              type="date"
+              value={formData.vpesSignatureDate}
+              onChange={(e) => setFormData({ ...formData, vpesSignatureDate: e.target.value })}
+            />
+          </div>
+        </div>
+        <div className="signature-box">
+          <label><strong>Representative</strong></label>
+          <SignatureBox
+            label="Sign"
+            nameValue=""
+            onNameChange={() => {}}
+            onSignatureChange={(sig) => setFormData((prev) => ({ ...prev, representativeSignature: sig }))}
+            initialSignature={formData.representativeSignature}
+          />
+          <div style={{ marginTop: "10px" }}>
+            <strong>Date: </strong>
+            <input
+              type="date"
+              value={formData.representativeSignatureDate}
+              onChange={(e) => setFormData({ ...formData, representativeSignatureDate: e.target.value })}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="form-actions" style={{ marginTop: "30px" }}>
+        {onPrevious && (
+          <button type="button" onClick={onPrevious} className="prev-btn">
+            Previous Form
+          </button>
+        )}
+        <button type="submit" className="submit-btn">
+          Save & Next
+        </button>
+      </div>
+    </form>
+  );
+}
+
+// Form 3: Protocol for Accessories Checking
+function AccessoriesCheckingForm({
+  onSubmit,
+  onPrevious,
+  initialData,
+  isLastFormOfStage,
+  companyName,
+  projectName,
+}) {
+  const emptyRow = { status: "", remarks: "", date: "", checkedBy: "" };
+
+  const FIXED_ACCESSORIES = [
+    "TR Wheels", "HV Bushings", "LV Bushings", "Neutral Bushings",
+    "Turrets", "Radiators", "Conservator", "Conservator Frame",
+    "Pipelines/RFBD", "Fan Frame", "Fan Frame Support", "Accessories Boxes",
+  ];
+
+  const defaultInventory = [
+    ...FIXED_ACCESSORIES.map((desc) => ({
+      packingCaseNumber: "", materialDescription: desc,
+      qtyAsPerChallan: "", qtyAsReceived: "", date: "", checkedBy: "",
+    })),
+    { packingCaseNumber: "", materialDescription: "", qtyAsPerChallan: "", qtyAsReceived: "", date: "", checkedBy: "" },
+    { packingCaseNumber: "", materialDescription: "", qtyAsPerChallan: "", qtyAsReceived: "", date: "", checkedBy: "" },
+    { packingCaseNumber: "", materialDescription: "", qtyAsPerChallan: "", qtyAsReceived: "", date: "", checkedBy: "" },
+  ];
+
+  const [formData, setFormData] = useState({
+    accessoriesUnloadingPoint: { ...emptyRow },
+    dateOfUnloading: { ...emptyRow },
+    storagePhotos: { ...emptyRow },
+    accessoriesInventory: defaultInventory,
+    remark: "",
+    vpesSignature: "",
+    vpesSignatureDate: "",
+    customerSignature: "",
+    customerSignatureDate: "",
+    photos: {},
+    ...initialData,
+  });
+
+  useEffect(() => {
+    const fetchFormData = async () => {
+      try {
+        const response = await axios.post(
+          `${BACKEND_API_BASE_URL}/api/autoData/getTable`,
+          { companyName, projectName, stage: 0, formNumber: 3 }
+        );
+        if (response.data?.data) {
+          const fetched = response.data.data;
+          // Ensure inventory always has 15 rows
+          let inventory = defaultInventory.map((row) => ({ ...row }));
+          if (fetched.accessoriesInventory && Array.isArray(fetched.accessoriesInventory)) {
+            fetched.accessoriesInventory.forEach((row, i) => {
+              if (i < 15 && row) {
+                inventory[i] = {
+                  packingCaseNumber: row.packingCaseNumber || "",
+                  materialDescription: row.materialDescription || inventory[i].materialDescription,
+                  qtyAsPerChallan: row.qtyAsPerChallan || "",
+                  qtyAsReceived: row.qtyAsReceived || "",
+                  date: row.date || "",
+                  checkedBy: row.checkedBy || "",
+                };
+              }
+            });
+          }
+          setFormData({ ...fetched, accessoriesInventory: inventory });
+        }
+      } catch (error) {
+        console.error("Error fetching stage0 form3:", error);
+      }
+    };
+    fetchFormData();
+  }, [projectName, companyName]);
+
+  const updateRow = (rowKey, field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [rowKey]: { ...(prev[rowKey] || {}), [field]: value },
+    }));
+  };
+
+  const updateInventoryRow = (index, field, value) => {
+    setFormData((prev) => {
+      const updated = [...prev.accessoriesInventory];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, accessoriesInventory: updated };
+    });
+  };
+
+  const handlePhotoChange = (key, file) => {
+    setFormData((prev) => ({ ...prev, photos: { ...prev.photos, [key]: file } }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  const checklistRows = [
+    { srNo: 1, label: "Accessories unloading point", rowKey: "accessoriesUnloadingPoint", statusType: "select" },
+    { srNo: 2, label: "Date of Unloading", rowKey: "dateOfUnloading", statusType: "date" },
+    { srNo: 3, label: "Storage Photos", rowKey: "storagePhotos", statusType: "none" },
+  ];
+
+  const photoRequirements = [
+    { key: "accessoriesUnloadingPhoto", label: "Accessories Unloading Point" },
+    { key: "storagePhoto", label: "Storage Photos" },
+  ];
+
+  return (
+    <form onSubmit={handleSubmit} className="form-container">
+      <div className="company-header">
+        <h2>PROTOCOL FOR ACCESSORIES CHECKING</h2>
+      </div>
+
+      <table className="form-table">
+        <thead>
+          <tr>
+            <th>Sr No</th>
+            <th>Checklist Item</th>
+            <th>Status</th>
+            <th>Remarks</th>
+            <th>Date</th>
+            <th>Checked By</th>
+          </tr>
+        </thead>
+        <tbody>
+          {checklistRows.map((row) => (
+            <tr key={row.rowKey}>
+              <td style={{ textAlign: "center" }}>{row.srNo}</td>
+              <td><strong>{row.label}</strong></td>
+              <td>
+                {row.statusType === "select" ? (
+                  <select
+                    value={(formData[row.rowKey] || {}).status || ""}
+                    onChange={(e) => updateRow(row.rowKey, "status", e.target.value)}
+                  >
+                    {UNLOADING_STATUS_OPTIONS.map((o) => (
+                      <option key={o} value={o}>{o || "Select"}</option>
+                    ))}
+                  </select>
+                ) : row.statusType === "date" ? (
+                  <input
+                    type="date"
+                    value={(formData[row.rowKey] || {}).status || ""}
+                    onChange={(e) => updateRow(row.rowKey, "status", e.target.value)}
+                  />
+                ) : (
+                  <span>—</span>
+                )}
+              </td>
+              <td>
+                <input
+                  type="text"
+                  value={(formData[row.rowKey] || {}).remarks || ""}
+                  onChange={(e) => updateRow(row.rowKey, "remarks", e.target.value)}
+                />
+              </td>
+              <td>
+                <input
+                  type="date"
+                  value={(formData[row.rowKey] || {}).date || ""}
+                  onChange={(e) => updateRow(row.rowKey, "date", e.target.value)}
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  value={(formData[row.rowKey] || {}).checkedBy || ""}
+                  onChange={(e) => updateRow(row.rowKey, "checkedBy", e.target.value)}
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <h4 style={{ marginTop: "30px" }}>Accessories Inventory</h4>
+      <table className="form-table">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Packing Case Number</th>
+            <th>Material Description</th>
+            <th>Qty as per Challan</th>
+            <th>Qty as Received</th>
+            <th>Date</th>
+            <th>Checked By</th>
+          </tr>
+        </thead>
+        <tbody>
+          {formData.accessoriesInventory.map((row, index) => (
+            <tr key={index}>
+              <td style={{ textAlign: "center" }}>{index + 1}</td>
+              <td>
+                <input
+                  type="text"
+                  value={row.packingCaseNumber}
+                  onChange={(e) => updateInventoryRow(index, "packingCaseNumber", e.target.value)}
+                />
+              </td>
+              <td>
+                {index < 12 ? (
+                  <strong>{row.materialDescription}</strong>
+                ) : (
+                  <input
+                    type="text"
+                    value={row.materialDescription}
+                    onChange={(e) => updateInventoryRow(index, "materialDescription", e.target.value)}
+                  />
+                )}
+              </td>
+              <td>
+                <input
+                  type="text"
+                  value={row.qtyAsPerChallan}
+                  onChange={(e) => updateInventoryRow(index, "qtyAsPerChallan", e.target.value)}
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  value={row.qtyAsReceived}
+                  onChange={(e) => updateInventoryRow(index, "qtyAsReceived", e.target.value)}
+                />
+              </td>
+              <td>
+                <input
+                  type="date"
+                  value={row.date}
+                  onChange={(e) => updateInventoryRow(index, "date", e.target.value)}
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  value={row.checkedBy}
+                  onChange={(e) => updateInventoryRow(index, "checkedBy", e.target.value)}
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="form-group" style={{ marginTop: "20px" }}>
+        <label><strong>Remark:</strong></label>
+        <textarea
+          rows="3"
+          value={formData.remark}
+          onChange={(e) => setFormData({ ...formData, remark: e.target.value })}
+          placeholder="Enter any remarks..."
+        />
+      </div>
+
+      <PhotoUploadSection
+        title="Accessories Unloading Point, Storage Photos"
+        photos={photoRequirements}
+        onPhotoChange={handlePhotoChange}
+        initialPhotos={formData.photos}
+      />
+
+      <div className="signature-section" style={{ display: "flex", gap: "40px", marginTop: "30px", flexWrap: "wrap" }}>
+        <div className="signature-box">
+          <label><strong>VPES Representative</strong></label>
+          <SignatureBox
+            label="Sign"
+            nameValue=""
+            onNameChange={() => {}}
+            onSignatureChange={(sig) => setFormData((prev) => ({ ...prev, vpesSignature: sig }))}
+            initialSignature={formData.vpesSignature}
+          />
+          <div style={{ marginTop: "10px" }}>
+            <strong>Date: </strong>
+            <input
+              type="date"
+              value={formData.vpesSignatureDate}
+              onChange={(e) => setFormData({ ...formData, vpesSignatureDate: e.target.value })}
+            />
+          </div>
+        </div>
+        <div className="signature-box">
+          <label><strong>Customer Representative</strong></label>
+          <SignatureBox
+            label="Sign"
+            nameValue=""
+            onNameChange={() => {}}
+            onSignatureChange={(sig) => setFormData((prev) => ({ ...prev, customerSignature: sig }))}
+            initialSignature={formData.customerSignature}
+          />
+          <div style={{ marginTop: "10px" }}>
+            <strong>Date: </strong>
+            <input
+              type="date"
+              value={formData.customerSignatureDate}
+              onChange={(e) => setFormData({ ...formData, customerSignatureDate: e.target.value })}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="form-actions" style={{ marginTop: "30px" }}>
+        {onPrevious && (
+          <button type="button" onClick={onPrevious} className="prev-btn">
+            Previous Form
+          </button>
+        )}
+        <button type="submit" className="submit-btn">
+          Complete Unloading &amp; Start Stage 1
+        </button>
+      </div>
+    </form>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default FormStage;

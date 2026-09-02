@@ -2,6 +2,7 @@ import React from 'react';
 import { BACKEND_API_BASE_URL, BACKEND_IMG_API_BASE_URL } from './constant';
 // Import shared form components from StageReviewPanel
 import {
+  Stage0ReviewRenderer,
   Stage1Form1,
   Stage1Form2,
   Stage1Form3,
@@ -827,6 +828,7 @@ const GenericStageRenderer = ({ formDataFromDB, formatLabel, stageTitle }) => {
 // Main Stage Form Renderer Component
 export const AutoTransformerViewFormRenderer = ({ stageNumber, formDataFromDB, formatLabel }) => {
   const stageTitles = {
+    0: "Stage 0 - Unloading Checklist",
     1: "Stage 1 - Initial Inspection & Testing",
     2: "Stage 2 - Oil Handling & IR Testing",
     3: "Stage 3 - Oil Filtration & Pressure Testing",
@@ -836,6 +838,8 @@ export const AutoTransformerViewFormRenderer = ({ stageNumber, formDataFromDB, f
   };
 
   switch(stageNumber) {
+    case 0:
+      return <Stage0ReviewRenderer formDataFromDB={formDataFromDB} formatLabel={formatLabel} />;
     case 1:
       return <Stage1ReviewRenderer formDataFromDB={formDataFromDB} formatLabel={formatLabel} />;
     case 2:

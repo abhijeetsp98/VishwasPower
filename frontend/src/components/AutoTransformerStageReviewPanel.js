@@ -1,6 +1,253 @@
 import React from 'react';
 import { BACKEND_API_BASE_URL, BACKEND_IMG_API_BASE_URL } from './constant';
 
+// ─── STAGE 0 — Unloading Checklist Review ────────────────────────────────────
+
+const UNLOADING_STATUS_OPTIONS_REVIEW = ["", "OK", "Not OK", "NA"];
+
+// Helper: render a single checklist row in read-only mode
+const UnloadingRowReview = ({ label, rowData }) => {
+  const d = rowData || {};
+  return (
+    <tr>
+      <td style={{ border: "1px solid #e5e7eb", padding: "8px", fontWeight: "bold" }}>{label}</td>
+      <td style={{ border: "1px solid #e5e7eb", padding: "8px" }}>
+        <input type="text" value={d.status || ""} disabled className="form-input disabled preview" />
+      </td>
+      <td style={{ border: "1px solid #e5e7eb", padding: "8px" }}>
+        <input type="text" value={d.remarks || ""} disabled className="form-input disabled preview" />
+      </td>
+      <td style={{ border: "1px solid #e5e7eb", padding: "8px" }}>
+        <input type="date" value={d.date || ""} disabled className="form-input disabled preview" />
+      </td>
+      <td style={{ border: "1px solid #e5e7eb", padding: "8px" }}>
+        <input type="text" value={d.checkedBy || ""} disabled className="form-input disabled preview" />
+      </td>
+    </tr>
+  );
+};
+
+// Stage 0 Form 1: Site Condition at Time of Unloading
+const Stage0Form1 = ({ formData }) => (
+  <div>
+    <h4 style={{ marginBottom: "12px" }}>SITE CONDITION AT TIME OF UNLOADING</h4>
+    <table className="form-table" style={{ width: "100%", borderCollapse: "collapse", marginBottom: "16px" }}>
+      <tbody>
+        <tr>
+          <td style={{ border: "1px solid #e5e7eb", padding: "8px", fontWeight: "bold" }}>VPES Representative</td>
+          <td style={{ border: "1px solid #e5e7eb", padding: "8px" }}>
+            <input type="text" value={formData.vpesRepresentative || ""} disabled className="form-input disabled preview" />
+          </td>
+          <td style={{ border: "1px solid #e5e7eb", padding: "8px", fontWeight: "bold" }}>Date</td>
+          <td style={{ border: "1px solid #e5e7eb", padding: "8px" }}>
+            <input type="date" value={formData.date || ""} disabled className="form-input disabled preview" />
+          </td>
+        </tr>
+        <tr>
+          <td style={{ border: "1px solid #e5e7eb", padding: "8px", fontWeight: "bold" }}>Customer Representative</td>
+          <td style={{ border: "1px solid #e5e7eb", padding: "8px" }}>
+            <input type="text" value={formData.customerRepresentative || ""} disabled className="form-input disabled preview" />
+          </td>
+          <td style={{ border: "1px solid #e5e7eb", padding: "8px", fontWeight: "bold" }}>Contact No.</td>
+          <td style={{ border: "1px solid #e5e7eb", padding: "8px" }}>
+            <input type="text" value={formData.contactNo || ""} disabled className="form-input disabled preview" />
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <h5 style={{ marginBottom: "8px" }}>Check Points</h5>
+    <table className="form-table" style={{ width: "100%", borderCollapse: "collapse", marginBottom: "16px" }}>
+      <thead>
+        <tr>
+          <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>Check Point</th>
+          <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>Status</th>
+          <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>Remarks</th>
+          <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>Date</th>
+          <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>Checked By</th>
+        </tr>
+      </thead>
+      <tbody>
+        <UnloadingRowReview label="Route condition" rowData={formData.routeCondition} />
+        <UnloadingRowReview label="Site condition" rowData={formData.siteCondition} />
+        <UnloadingRowReview label="Approach road" rowData={formData.approachRoad} />
+        <UnloadingRowReview label="Boundary wall" rowData={formData.boundaryWall} />
+        <UnloadingRowReview label="Security guard" rowData={formData.securityGuard} />
+      </tbody>
+    </table>
+    <div style={{ display: "flex", gap: "40px", marginTop: "16px" }}>
+      <div>
+        <strong>VPES Signature Date:</strong>{" "}
+        <input type="date" value={formData.vpesSignatureDate || ""} disabled className="form-input disabled preview" />
+      </div>
+      <div>
+        <strong>Customer Signature Date:</strong>{" "}
+        <input type="date" value={formData.customerSignatureDate || ""} disabled className="form-input disabled preview" />
+      </div>
+    </div>
+  </div>
+);
+
+// Stage 0 Form 2: Main Tank Checklist
+const Stage0Form2 = ({ formData }) => {
+  const rows = [
+    { label: "Entry to TSS/SP/SSP/SS", key: "entryToTSS" },
+    { label: "Trailer Movement suitable or not", key: "trailerMovement" },
+    { label: "Hydra/Boom Movement", key: "hydraBoomMovement" },
+    { label: "Unloading Point", key: "unloadingPoint" },
+    { label: "Date of Trailer Reached", key: "dateOfTrailerReached" },
+    { label: "Date of Unloading", key: "dateOfUnloading" },
+    { label: "Aesthetic / Any Remarks", key: "aestheticRemarks" },
+    { label: "Wheel Locking", key: "wheelLocking" },
+    { label: "All Seal Checks", key: "allSealChecks" },
+    { label: "After unloading photos", key: "afterUnloadingPhotos" },
+    { label: "TOG Level Check as per dispatch", key: "togLevelCheck" },
+    { label: "After All check TRS Covering photo", key: "trsCoveringPhoto" },
+    { label: "Sign and Stamp Copy of all documents as per dispatch", key: "signAndStampCopy" },
+  ];
+  return (
+    <div>
+      <h4 style={{ marginBottom: "12px" }}>MAIN TANK CHECKLIST</h4>
+      <table className="form-table" style={{ width: "100%", borderCollapse: "collapse", marginBottom: "16px" }}>
+        <thead>
+          <tr>
+            <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>Checklist Item</th>
+            <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>Status</th>
+            <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>Remarks</th>
+            <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>Date</th>
+            <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>Checked By</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(({ label, key }) => (
+            <UnloadingRowReview key={key} label={label} rowData={formData[key]} />
+          ))}
+        </tbody>
+      </table>
+      <div style={{ display: "flex", gap: "40px", marginTop: "16px" }}>
+        <div>
+          <strong>VPES Signature Date:</strong>{" "}
+          <input type="date" value={formData.vpesSignatureDate || ""} disabled className="form-input disabled preview" />
+        </div>
+        <div>
+          <strong>Representative Signature Date:</strong>{" "}
+          <input type="date" value={formData.representativeSignatureDate || ""} disabled className="form-input disabled preview" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Stage 0 Form 3: Protocol for Accessories Checking
+const Stage0Form3 = ({ formData }) => {
+  const FIXED_ACCESSORIES = [
+    "TR Wheels", "HV Bushings", "LV Bushings", "Neutral Bushings",
+    "Turrets", "Radiators", "Conservator", "Conservator Frame",
+    "Pipelines/RFBD", "Fan Frame", "Fan Frame Support", "Accessories Boxes",
+  ];
+  const inventory = formData.accessoriesInventory || [];
+  return (
+    <div>
+      <h4 style={{ marginBottom: "12px" }}>PROTOCOL FOR ACCESSORIES CHECKING</h4>
+      <table className="form-table" style={{ width: "100%", borderCollapse: "collapse", marginBottom: "16px" }}>
+        <thead>
+          <tr>
+            <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>Checklist Item</th>
+            <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>Status</th>
+            <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>Remarks</th>
+            <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>Date</th>
+            <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>Checked By</th>
+          </tr>
+        </thead>
+        <tbody>
+          <UnloadingRowReview label="Accessories unloading point" rowData={formData.accessoriesUnloadingPoint} />
+          <UnloadingRowReview label="Date of Unloading" rowData={formData.dateOfUnloading} />
+          <UnloadingRowReview label="Storage Photos" rowData={formData.storagePhotos} />
+        </tbody>
+      </table>
+      <h5 style={{ marginBottom: "8px" }}>Accessories Inventory</h5>
+      <table className="form-table" style={{ width: "100%", borderCollapse: "collapse", marginBottom: "16px" }}>
+        <thead>
+          <tr>
+            <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>No</th>
+            <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>Packing Case No.</th>
+            <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>Material Description</th>
+            <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>Qty as per Challan</th>
+            <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>Qty as Received</th>
+            <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>Date</th>
+            <th style={{ border: "1px solid #e5e7eb", padding: "8px", background: "#f3f4f6" }}>Checked By</th>
+          </tr>
+        </thead>
+        <tbody>
+          {inventory.map((row, i) => (
+            <tr key={i}>
+              <td style={{ border: "1px solid #e5e7eb", padding: "8px", textAlign: "center" }}>{i + 1}</td>
+              <td style={{ border: "1px solid #e5e7eb", padding: "8px" }}>
+                <input type="text" value={row.packingCaseNumber || ""} disabled className="form-input disabled preview" />
+              </td>
+              <td style={{ border: "1px solid #e5e7eb", padding: "8px" }}>
+                <strong>{row.materialDescription || ""}</strong>
+              </td>
+              <td style={{ border: "1px solid #e5e7eb", padding: "8px" }}>
+                <input type="text" value={row.qtyAsPerChallan || ""} disabled className="form-input disabled preview" />
+              </td>
+              <td style={{ border: "1px solid #e5e7eb", padding: "8px" }}>
+                <input type="text" value={row.qtyAsReceived || ""} disabled className="form-input disabled preview" />
+              </td>
+              <td style={{ border: "1px solid #e5e7eb", padding: "8px" }}>
+                <input type="date" value={row.date || ""} disabled className="form-input disabled preview" />
+              </td>
+              <td style={{ border: "1px solid #e5e7eb", padding: "8px" }}>
+                <input type="text" value={row.checkedBy || ""} disabled className="form-input disabled preview" />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {formData.remark && (
+        <div style={{ marginBottom: "16px" }}>
+          <strong>Remark:</strong>
+          <p style={{ marginTop: "4px", padding: "8px", background: "#f9fafb", borderRadius: "4px" }}>{formData.remark}</p>
+        </div>
+      )}
+      <div style={{ display: "flex", gap: "40px", marginTop: "16px" }}>
+        <div>
+          <strong>VPES Signature Date:</strong>{" "}
+          <input type="date" value={formData.vpesSignatureDate || ""} disabled className="form-input disabled preview" />
+        </div>
+        <div>
+          <strong>Customer Signature Date:</strong>{" "}
+          <input type="date" value={formData.customerSignatureDate || ""} disabled className="form-input disabled preview" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Stage 0 Review Renderer
+const Stage0ReviewRenderer = ({ formDataFromDB, formatLabel }) => {
+  const stage0Forms = [
+    { title: "Form 1 — Site Condition at Time of Unloading", Component: Stage0Form1, key: "form1" },
+    { title: "Form 2 — Main Tank Checklist", Component: Stage0Form2, key: "form2" },
+    { title: "Form 3 — Protocol for Accessories Checking", Component: Stage0Form3, key: "form3" },
+  ];
+  return (
+    <div>
+      <h3 style={{ marginBottom: "20px", color: "#1e3a8a" }}>Unloading Checklist — Stage 0 Review</h3>
+      {stage0Forms.map(({ title, Component, key }) => {
+        const formData = formDataFromDB?.[key] || {};
+        return (
+          <div key={key} style={{ marginBottom: "32px", padding: "20px", border: "1px solid #e5e7eb", borderRadius: "8px" }}>
+            <h4 style={{ marginBottom: "16px", color: "#374151", borderBottom: "2px solid #e5e7eb", paddingBottom: "8px" }}>{title}</h4>
+            <Component formData={formData} />
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Stage 1 Form 1: Name Plate Details Transformer
 const Stage1Form1 = ({ formData }) => (
   <table className="form-table" style={{
@@ -4374,6 +4621,11 @@ const AutoTransformerStageReviewPanel = ({
 }) => {
   const renderStageSpecificUI = () => {
     switch(currentStageReview) {
+      case 0:
+        return <Stage0ReviewRenderer
+          formDataFromDB={formDataFromDB}
+          formatLabel={formatLabel}
+        />;
       case 1:
         return <Stage1ReviewRenderer 
           formDataFromDB={formDataFromDB} 
@@ -4857,6 +5109,7 @@ const AutoTransformerStageReviewPanel = ({
 
 // Export form components for reuse in other files
 export {
+  Stage0ReviewRenderer,
   Stage1Form1,
   Stage1Form2,
   Stage1Form3,

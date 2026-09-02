@@ -95,7 +95,7 @@ const ETCAdminPanel = ({
   const [createProjectName, setCreateProjectName] = useState("");
   const [createProjectJobRating, setCreateProjectJobRating] = useState("8");
 
-  const totalStageForm = [5, 2, 3, 4, 2, 1];
+  const totalStageForm = [5, 2, 3, 4, 2, 1]; // index 0 = stage 1 forms
 
   const formStructures = {
     stage1: {
@@ -1800,15 +1800,18 @@ const ETCAdminPanel = ({
 
     // Build stage approvals / submitted stages dynamically
     const stageFlags = {};
+    stageFlags[0] = false; // Stage 0 (Unloading)
     for (let i = 1; i <= totalStages; i++) stageFlags[i] = false;
 
+    const isAutoTransformer = selectedDepartment?.name === "Auto Transformer";
+    const initialStage = isAutoTransformer ? 0 : 1;
     const newProject = {
       id: Math.max(...companies.map((c) => c.id), 0) + 1,
       name: ProjectName,
       companyName: CompanyName,
-      stage: 1,
+      stage: initialStage,
       formsCompleted: 0,
-      totalForms: getStageFormCount(1),
+      totalForms: getStageFormCount(initialStage),
       status: "in-progress",
       lastActivity: new Date().toISOString().split("T")[0],
       stageApprovals: { ...stageFlags },
@@ -1908,6 +1911,7 @@ const ETCAdminPanel = ({
   // Helper function to get form count for each stage
   const getStageFormCount = (stage) => {
     const stageForms = {
+      0: 3, // Stage 0 (Unloading) has 3 forms
       1: 8, // Stage 1 has 4 forms
       2: 2, // Stage 2 has 1 form
       3: 1, // Stage 3 has 7 forms
@@ -2646,7 +2650,7 @@ const ETCAdminPanel = ({
     }
 
     const nextStage = Project.stage;
-    const canSubmit = nextStage === 1 || Project.stageApprovals[nextStage - 1];
+    const canSubmit = nextStage === 0 || nextStage === 1 || Project.stageApprovals[nextStage - 1];
     setProjectName(Project.name);
     setCompanyName(Project.companyName);
 
@@ -3824,8 +3828,8 @@ const ETCAdminPanel = ({
                     </div>
                     <h3>{Project.name}</h3>
                     <p>
-                      Stage {Project.stage} • {Project.formsCompleted}/
-                      {totalStageForm[Project.stage - 1]} forms completed
+                      {Project.stage === 0 ? "Unloading Checklist" : `Stage ${Project.stage}`} • {Project.formsCompleted}/
+                      {Project.stage === 0 ? 3 : totalStageForm[Project.stage - 1]} forms completed
                     </p>
                     <div className="progress-bar">
                       <div
@@ -3859,7 +3863,9 @@ const ETCAdminPanel = ({
                       <div className="stages-row">
                         {(["V Connected 63 MVA Transformer", "Traction Transformer"].includes(selectedDepartment?.name)
                           ? [1, 2, 3, 4, 5, 6, 7]
-                          : [1, 2, 3, 4, 5, 6]
+                          : selectedDepartment?.name === "Auto Transformer"
+                            ? [0, 1, 2, 3, 4, 5, 6]
+                            : [1, 2, 3, 4, 5, 6]
                         ).map((stage) => {
                           const stageStatus = getStageStatus(Project, stage);
                           return (
@@ -3867,12 +3873,12 @@ const ETCAdminPanel = ({
                               key={stage}
                               className={`stage-item ${stageStatus}`}
                             >
-                              <div className="stage-number">{stage}</div>
+                              <div className="stage-number">{stage === 0 ? "UL" : stage}</div>
                               <div className="stage-status-text">
-                                {stageStatus === "approved" && "✅ Approved"}
+                                {stageStatus === "approved" && (stage === 0 ? "✅ Unloading Done" : "✅ Approved")}
                                 {stageStatus === "pending-review" &&
                                   "⏳ Pending"}
-                                {stageStatus === "available" && "📝 Available"}
+                                {stageStatus === "available" && (stage === 0 ? "📋 Available" : "📝 Available")}
                                 {stageStatus === "locked" && "🔒 Locked"}
                               </div>
                               {stageStatus === "pending-review" && (
@@ -3989,7 +3995,7 @@ const ETCAdminPanel = ({
                           transition: "all 0.3s ease",
                         }}
                       >
-                        📝 Submit Stage {Project.stage}
+                        {Project.stage === 0 ? "📋 Fill Unloading Checklist" : `📝 Submit Stage ${Project.stage}`}
                       </button>
 
                       
