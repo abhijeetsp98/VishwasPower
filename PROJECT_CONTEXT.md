@@ -1052,3 +1052,67 @@ const pctDate = observationData.pct_tested_date || observationData.pct_tested_at
 |---|---|---|
 | 19 Aug 2026 | Backend team | Migrated VoltTrack backend from `akshayninawe/testing` (branch `main`) to `AkshayNinawe/vp-testing` (branch `master`). Fresh clone at `/var/www/volttrack-api/testing/`. `.env` preserved. MongoDB data (51 jobs, 11 users) intact. |
 | 19 Aug 2026 | Backend team | Identified breaking changes between old and new VoltTrack backend. Frontend POC handoff document created (see Section 18). |
+| 02 Sep 2026 | Akshay | Deployed latest `vp-testing` backend changes (git pull + npm install + pm2 restart volttrack-api). |
+| 02 Sep 2026 | Akshay | Added **Stage 0 (Unloading Checklist)** for Auto Transformer. New projects now start at Stage 0 before Stage 1. See Section 20. |
+| 02 Sep 2026 | Akshay | Fixed stage=0 falsy bug in `autoDataController.js` and `autoCompanyController.js` — `!stage` evaluates to `true` when `stage===0` in JavaScript. Changed all checks to `stage == null`. |
+
+---
+
+## 20. Auto Transformer — Stage 0 (Unloading Checklist)
+
+Added on **02 Sep 2026**. New Auto Transformer projects now start at **Stage 0 (Unloading)** before the existing Stage 1–6 workflow.
+
+### 20.1 Overview
+
+- **Stage 0** is called "Unloading Checklist" (abbreviated "UL" in the stage tiles)
+- New projects created in Auto Transformer department start at `stage: 0`
+- After Stage 0 is approved, the project advances to Stage 1 (existing flow unchanged)
+- Existing projects at Stage 1–6 are **completely unaffected** — no data migration needed
+- The last stage is still Stage 6 — the `stageNumber !== 6` completion check in the backend is unchanged
+
+### 20.2 Stage 0 Forms (3 forms)
+
+| Form | Title | Key Fields |
+|---|---|---|
+| Form 1 | Site Condition at Time of Unloading | VPES Rep, Customer Rep, Contact No, 5 check points (Route condition, Site condition, Approach road, Boundary wall, Security guard) — each with Status/Remarks/Date/Checked By, photos, signatures |
+| Form 2 | Main Tank Checklist | 13 checklist rows (Entry to TSS, Trailer Movement, Hydra/Boom, Unloading Point, Date of Trailer Reached, Date of Unloading, Aesthetic Remarks, Wheel Locking, Seal Checks, After Unloading Photos, TOG Level, TRS Covering, Sign & Stamp Copy), photos, signatures |
+| Form 3 | Protocol for Accessories Checking | 3 checklist rows + Accessories Inventory table (15 rows: 12 fixed items + 3 open), Remark textarea, photos, signatures. Last button: "Complete Unloading & Start Stage 1" |
+
+### 20.3 Files Changed
+
+**Backend:**
+| File | Change |
+|---|---|
+| `backend/model/AutoTransformer.js` | Added `Stage0Form1SubSchema`, `Stage0Form2SubSchema`, `Stage0Form3SubSchema`, `UnloadingCheckRowSchema`, `AccessoriesInventoryRowSchema`. Added `stage0: { form1, form2, form3 }` to `autoTransformerData`. |
+| `backend/controller/autoDataController.js` | Fixed `!stage` → `stage == null` in `getStageTableData`, `getTableData`, `setTableData` (stage=0 is falsy in JS). |
+| `backend/controller/autoCompanyController.js` | Fixed `!stage` → `stage == null` in `setapproveCompanyStage`, `rejectCompanyStage`. Fixed `if (stageNumber)` → `if (stageNumber != null)` in `setFormsCompleted` (3 locations). |
+
+**Frontend:**
+| File | Change |
+|---|---|
+| `frontend/src/components/FormStage.js` | Added `stage0Forms` array, `case 0:` in `getFormsForStage`, 3 form components (`SiteConditionUnloadingForm`, `MainTankChecklistForm`, `AccessoriesCheckingForm`). Fixed `submittedStagesMap` to include `"0": stage === 0`. |
+| `frontend/src/components/ETCAdminPanel.js` | New projects start at `stage: 0` for Auto Transformer. `stageFlags[0] = false` added. `totalStageForm` display handles stage 0. Stage tiles show "UL/Unloading" as first tile. Button shows "📋 Fill Unloading Checklist" for stage 0. `canSubmit` check includes `nextStage === 0`. `getStageFormCount` returns `3` for stage 0. |
+| `frontend/src/components/AutoTransformerStageReviewPanel.js` | Added `Stage0Form1`, `Stage0Form2`, `Stage0Form3`, `Stage0ReviewRenderer` components. Added `case 0:` to `renderStageSpecificUI`. Exported `Stage0ReviewRenderer`. |
+| `frontend/src/components/AutoTransformerViewForm.js` | Imported `Stage0ReviewRenderer`. Added `case 0:` to `AutoTransformerViewFormRenderer` switch. |
+
+### 20.4 Important: JavaScript Falsy Bug Pattern
+
+**Always use `stage == null` (not `!stage`) when checking if stage is missing**, because `stage === 0` is a valid value and `!0 === true` in JavaScript.
+
+```js
+// ❌ WRONG — fails for stage 0
+if (!stage) { return 400; }
+if (stageNumber) { ... }
+
+// ✅ CORRECT
+if (stage == null || stage === '') { return 400; }
+if (stageNumber != null) { ... }
+```
+
+This applies to all backend controllers that receive `stage` from the request body.
+
+### 20.5 Deployment Notes
+
+- Backend: `git pull` + `pm2 restart vishwaspower-backend` (no npm install needed)
+- Frontend: `git pull` + `npm run build` in `/var/www/vishwaspower/frontend/`
+- No MongoDB migration needed — existing data is unaffected
