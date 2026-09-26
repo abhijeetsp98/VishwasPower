@@ -9,6 +9,7 @@ import {
   getCompleteTableData,
   getStageTableData,
   generatePDF,
+  generateStage0PDF,
 } from "../controller/autoDataController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
@@ -43,5 +44,6 @@ router.post("/getStageTable", getStageTableData);
 router.post("/getCompleteTable", getCompleteTableData);
 router.post("/setTable", upload.any(), setTableData);
 router.post("/download-all-forms", generatePDF);
+router.post("/download-stage0", generateStage0PDF);
 
 export default router;

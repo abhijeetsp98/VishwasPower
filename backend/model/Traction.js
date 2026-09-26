@@ -7,6 +7,97 @@ import mongoose from "mongoose";
 // (stageFormsMapping for stages 1..6)
 // ============================================================
 
+// ─── STAGE 0 — Unloading Checklist ───────────────────────────────────────────
+
+// Sub-schema for a single checklist row (used in all 3 Stage 0 forms)
+const UnloadingCheckRowSchema = new mongoose.Schema(
+  {
+    status:    { type: String, trim: true, default: "" },
+    remarks:   { type: String, trim: true, default: "" },
+    date:      { type: String, trim: true, default: "" },
+    checkedBy: { type: String, trim: true, default: "" },
+  },
+  { _id: false }
+);
+
+// Sub-schema for Stage 0 Form 1 (Site condition at time of unloading)
+const Stage0Form1SubSchema = new mongoose.Schema(
+  {
+    vpesRepresentative:    { type: String, trim: true, default: "" },
+    date:                  { type: String, trim: true, default: "" },
+    customerRepresentative:{ type: String, trim: true, default: "" },
+    contactNo:             { type: String, trim: true, default: "" },
+    routeCondition:   { type: UnloadingCheckRowSchema, default: () => ({}) },
+    siteCondition:    { type: UnloadingCheckRowSchema, default: () => ({}) },
+    approachRoad:     { type: UnloadingCheckRowSchema, default: () => ({}) },
+    boundaryWall:     { type: UnloadingCheckRowSchema, default: () => ({}) },
+    securityGuard:    { type: UnloadingCheckRowSchema, default: () => ({}) },
+    vpesSignature:         { type: String, trim: true, default: "" },
+    vpesSignatureDate:     { type: String, trim: true, default: "" },
+    customerSignature:     { type: String, trim: true, default: "" },
+    customerSignatureDate: { type: String, trim: true, default: "" },
+    photos: { type: Map, of: String, default: {} },
+  },
+  { _id: false }
+);
+
+// Sub-schema for Stage 0 Form 2 (Main Tank Checklist)
+const Stage0Form2SubSchema = new mongoose.Schema(
+  {
+    entryToTSS:           { type: UnloadingCheckRowSchema, default: () => ({}) },
+    trailerMovement:      { type: UnloadingCheckRowSchema, default: () => ({}) },
+    hydraBoomMovement:    { type: UnloadingCheckRowSchema, default: () => ({}) },
+    unloadingPoint:       { type: UnloadingCheckRowSchema, default: () => ({}) },
+    dateOfTrailerReached: { type: UnloadingCheckRowSchema, default: () => ({}) },
+    dateOfUnloading:      { type: UnloadingCheckRowSchema, default: () => ({}) },
+    aestheticRemarks:     { type: UnloadingCheckRowSchema, default: () => ({}) },
+    wheelLocking:         { type: UnloadingCheckRowSchema, default: () => ({}) },
+    allSealChecks:        { type: UnloadingCheckRowSchema, default: () => ({}) },
+    afterUnloadingPhotos: { type: UnloadingCheckRowSchema, default: () => ({}) },
+    togLevelCheck:        { type: UnloadingCheckRowSchema, default: () => ({}) },
+    trsCoveringPhoto:     { type: UnloadingCheckRowSchema, default: () => ({}) },
+    signAndStampCopy:     { type: UnloadingCheckRowSchema, default: () => ({}) },
+    vpesSignature:              { type: String, trim: true, default: "" },
+    vpesSignatureDate:          { type: String, trim: true, default: "" },
+    representativeSignature:    { type: String, trim: true, default: "" },
+    representativeSignatureDate:{ type: String, trim: true, default: "" },
+    photos: { type: Map, of: String, default: {} },
+  },
+  { _id: false }
+);
+
+// Sub-schema for accessories inventory row (Form 3)
+const AccessoriesInventoryRowSchema = new mongoose.Schema(
+  {
+    packingCaseNumber:   { type: String, trim: true, default: "" },
+    materialDescription: { type: String, trim: true, default: "" },
+    qtyAsPerChallan:     { type: String, trim: true, default: "" },
+    qtyAsReceived:       { type: String, trim: true, default: "" },
+    date:                { type: String, trim: true, default: "" },
+    checkedBy:           { type: String, trim: true, default: "" },
+  },
+  { _id: false }
+);
+
+// Sub-schema for Stage 0 Form 3 (Protocol for Accessories Checking)
+const Stage0Form3SubSchema = new mongoose.Schema(
+  {
+    accessoriesUnloadingPoint: { type: UnloadingCheckRowSchema, default: () => ({}) },
+    dateOfUnloading:           { type: UnloadingCheckRowSchema, default: () => ({}) },
+    storagePhotos:             { type: UnloadingCheckRowSchema, default: () => ({}) },
+    accessoriesInventory: { type: [AccessoriesInventoryRowSchema], default: () => [] },
+    remark: { type: String, trim: true, default: "" },
+    vpesSignature:         { type: String, trim: true, default: "" },
+    vpesSignatureDate:     { type: String, trim: true, default: "" },
+    customerSignature:     { type: String, trim: true, default: "" },
+    customerSignatureDate: { type: String, trim: true, default: "" },
+    photos: { type: Map, of: String, default: {} },
+  },
+  { _id: false }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 // --------------------
 // Stage 1 - Form 1
 // --------------------
@@ -1205,6 +1296,11 @@ const TractionSchema = new mongoose.Schema(
     companyName: { type: String, trim: true, required: true },
 
     TractionData: {
+      stage0: {
+        form1: { type: Stage0Form1SubSchema, default: () => ({}) },
+        form2: { type: Stage0Form2SubSchema, default: () => ({}) },
+        form3: { type: Stage0Form3SubSchema, default: () => ({}) },
+      },
       stage1: {
         form1: { type: Stage1Form1SubSchema, default: () => ({}) },
         form2: { type: Stage1Form2SubSchema, default: () => ({}) },

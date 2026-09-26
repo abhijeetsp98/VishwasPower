@@ -224,15 +224,64 @@ const Stage0Form3 = ({ formData }) => {
 };
 
 // Stage 0 Review Renderer
-const Stage0ReviewRenderer = ({ formDataFromDB, formatLabel }) => {
+const Stage0ReviewRenderer = ({ formDataFromDB, formatLabel, projectName, companyName, apiEndpoint }) => {
   const stage0Forms = [
     { title: "Form 1 — Site Condition at Time of Unloading", Component: Stage0Form1, key: "form1" },
     { title: "Form 2 — Main Tank Checklist", Component: Stage0Form2, key: "form2" },
     { title: "Form 3 — Protocol for Accessories Checking", Component: Stage0Form3, key: "form3" },
   ];
+
+  // Determine the correct API endpoint based on department
+  const downloadEndpoint = apiEndpoint === "tractionData"
+    ? "/api/tractionData/download-stage0"
+    : apiEndpoint === "vconnectData"
+    ? "/api/vconnectData/download-stage0"
+    : "/api/autoData/download-stage0";
+
+  const handleDownloadStage0PDF = async () => {
+    try {
+      const response = await fetch(`${BACKEND_API_BASE_URL}${downloadEndpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectName, companyName }),
+      });
+      if (!response.ok) throw new Error("Failed to generate PDF");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${projectName}_unloading_checklist.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert("Failed to download PDF: " + err.message);
+    }
+  };
+
   return (
     <div>
-      <h3 style={{ marginBottom: "20px", color: "#1e3a8a" }}>Unloading Checklist — Stage 0 Review</h3>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+        <h3 style={{ color: "#1e3a8a", margin: 0 }}>Unloading Checklist — Stage 0 Review</h3>
+        {projectName && companyName && (
+          <button
+            onClick={handleDownloadStage0PDF}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: "#1e3a8a",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: "600",
+            }}
+          >
+            📥 Download Unloading Checklist PDF
+          </button>
+        )}
+      </div>
       {stage0Forms.map(({ title, Component, key }) => {
         const formData = formDataFromDB?.[key] || {};
         return (
@@ -4625,6 +4674,8 @@ const AutoTransformerStageReviewPanel = ({
         return <Stage0ReviewRenderer
           formDataFromDB={formDataFromDB}
           formatLabel={formatLabel}
+          projectName={selectedProjectForReview?.name}
+          companyName={selectedProjectForReview?.companyName}
         />;
       case 1:
         return <Stage1ReviewRenderer 

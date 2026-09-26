@@ -1,5 +1,6 @@
 import React from 'react';
 import { BACKEND_API_BASE_URL, BACKEND_IMG_API_BASE_URL } from './constant';
+import { Stage0ReviewRenderer } from './AutoTransformerStageReviewPanel';
 // Import shared form components from StageReviewPanel
 import {
   Stage1Form1,
@@ -959,6 +960,8 @@ export const VConnected63MVATransformerViewFormRenderer = ({ stageNumber, formDa
   };
 
   switch(stageNumber) {
+    case 0:
+      return <Stage0ReviewRenderer formDataFromDB={formDataFromDB} formatLabel={formatLabel} />;
     case 1:
       return <Stage1ReviewRenderer formDataFromDB={formDataFromDB} formatLabel={formatLabel} />;
     case 2:

@@ -5,6 +5,7 @@ import "./form-styles.css"
 import axios from "axios"
 import { BACKEND_API_BASE_URL, ENABLE_IMAGE_COMPRESSION, IMAGE_COMPRESSION_MAX_WIDTH, IMAGE_COMPRESSION_QUALITY } from "./constant"
 import { getUserInfo } from "../utils/auth"
+import { SiteConditionUnloadingForm, MainTankChecklistForm, AccessoriesCheckingForm } from "./FormStage"
 
 // ─── Image compression utility (same as FormStage.js) ────────────────────────
 const compressImage = (file, maxWidth, quality) => {
@@ -11491,6 +11492,11 @@ const VConnected63MVATransformerForms = ({
 
   // Define stage forms mapping
   const stageFormsMapping = {
+    0: [
+      { component: SiteConditionUnloadingForm, name: "Site Condition at Time of Unloading" },
+      { component: MainTankChecklistForm, name: "Main Tank Checklist" },
+      { component: AccessoriesCheckingForm, name: "Protocol for Accessories Checking" },
+    ],
     1: [
       { component: Stage1Form1, name: "Name Plate Details Transformer/Reactor" },
       { component: Stage1Form2, name: "Pre Erection Ratio Test of Turret CTs - Phase 3" },
@@ -11613,6 +11619,7 @@ const VConnected63MVATransformerForms = ({
                 companyProjects: prevCompany.companyProjects.map((project) => {
                   if (project.name === projectName) {
                     const submittedStagesMap = {};
+                    submittedStagesMap["0"] = stage === 0; // Stage 0 (Unloading)
                     for (let i = 1; i <= 7; i++) {
                       submittedStagesMap[i.toString()] = i <= stage;
                     }

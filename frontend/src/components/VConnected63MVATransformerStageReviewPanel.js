@@ -1,5 +1,6 @@
 import React from 'react';
 import { BACKEND_API_BASE_URL, BACKEND_IMG_API_BASE_URL } from './constant';
+import { Stage0ReviewRenderer } from './AutoTransformerStageReviewPanel';
 
 /**
  * Stage 1 Form 1: Name Plate Details Transformer (Review)
@@ -8159,6 +8160,14 @@ const VConnected63MVATransformerStageReviewPanel = ({
 }) => {
   const renderStageSpecificUI = () => {
     switch(currentStageReview) {
+      case 0:
+        return <Stage0ReviewRenderer
+          formDataFromDB={formDataFromDB}
+          formatLabel={formatLabel}
+          projectName={selectedProjectForReview?.name}
+          companyName={selectedProjectForReview?.companyName}
+          apiEndpoint="vconnectData"
+        />;
       case 1:
         return (
           <Stage1ReviewRenderer

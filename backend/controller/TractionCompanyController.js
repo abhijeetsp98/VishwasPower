@@ -486,7 +486,8 @@ export const setFormsCompleted = async (req, res) => {
     const stageNumber = Number(stage);
 
     // ── Guard: Prevent re-submission of an already-approved stage ──
-    if (stageNumber && status === "pending-approval") {
+    // Note: stageNumber can be 0 (Unloading), so check != null not !stageNumber
+    if (stageNumber != null && status === "pending-approval") {
       const existingCompany = await TractionCompany.findOne({
         companyName,
         "companyProjects.name": projectName,
@@ -517,7 +518,7 @@ export const setFormsCompleted = async (req, res) => {
     const updateSets = {
       "companyProjects.$.lastActivity": new Date(),
       "companyProjects.$.lastEventUser": userName || "",
-      "companyProjects.$.lastEventAction": eventAction || (stageNumber ? `Stage ${stageNumber} Submitted` : "Forms Updated"),
+      "companyProjects.$.lastEventAction": eventAction || (stageNumber != null ? `Stage ${stageNumber} Submitted` : "Forms Updated"),
       "companyProjects.$.lastEventTimestamp": new Date(),
       "companyProjects.$.lastSubmittedUser": userName || "",
       "companyProjects.$.lastSubmittedTimestamp": new Date(),
@@ -532,7 +533,8 @@ export const setFormsCompleted = async (req, res) => {
     }
 
     // Set only the submitted stage flag (not the whole map)
-    if (stageNumber) {
+    // Note: stageNumber can be 0 (Unloading), so check != null not !stageNumber
+    if (stageNumber != null) {
       updateSets[`companyProjects.$.submittedStages.${stageNumber}`] = true;
     }
 

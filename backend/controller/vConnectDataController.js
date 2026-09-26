@@ -4,7 +4,7 @@ import path from "path"
 import fs from "fs"
 import PDFDocument from "pdfkit"
 import puppeteer from "puppeteer"
-import { generateHTMLTemplate } from "../utils/pdfVConnectTemplateGenerator.js"
+import { generateHTMLTemplate, generateStage0HTMLTemplate } from "../utils/pdfVConnectTemplateGenerator.js"
 
 // Setup multer storage
 const storage = multer.diskStorage({
@@ -388,5 +388,49 @@ export const generatePDF = async (req, res) => {
       details: err.message,
       stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
+  }
+};
+
+// Generate Stage 0 (Unloading Checklist) PDF only
+export const generateStage0PDF = async (req, res) => {
+  try {
+    const projectName = req.body.projectName || req.body.ProjectName;
+    const companyName = req.body.companyName || req.body.CompanyName;
+
+    if (!projectName || !companyName) {
+      return res.status(400).json({ message: "Project name and company name are required." });
+    }
+
+    const document = await VConnect.findOne({ projectName, companyName }).lean();
+    if (!document) {
+      return res.status(404).json({ message: "Project data not found." });
+    }
+
+    const stage0Data = document?.vConnectData?.stage0 || {};
+    const html = generateStage0HTMLTemplate(stage0Data, projectName, companyName);
+
+    const launchOptions = {
+      headless: true,
+      args: ['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-zygote','--single-process'],
+      timeout: 30000,
+      handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false
+    };
+
+    const browser = await puppeteer.launch(launchOptions);
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 30000 });
+    const pdfBuffer = await page.pdf({
+      format: 'A4', printBackground: true,
+      margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' }
+    });
+    await browser.close();
+
+    const filename = `${projectName}_unloading_checklist_${new Date().toISOString().split("T")[0]}.pdf`;
+    res.setHeader("Content-disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-type", "application/pdf");
+    res.send(pdfBuffer);
+  } catch (err) {
+    console.error("Error generating Stage 0 PDF:", err);
+    res.status(500).json({ error: "Failed to generate PDF", details: err.message });
   }
 };

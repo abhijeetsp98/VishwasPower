@@ -3702,6 +3702,174 @@ function generateStage6Form1(formData) {
   `;
 }
 
+// ─── STAGE 0 — Unloading Checklist PDF Generators ────────────────────────────
+
+function generateUnloadingCheckRow(label, rowData) {
+  const d = rowData || {};
+  return `
+    <tr>
+      <td style="border:1px solid #e5e7eb;padding:6px;font-weight:bold;">${label}</td>
+      <td style="border:1px solid #e5e7eb;padding:6px;">${d.status || ""}</td>
+      <td style="border:1px solid #e5e7eb;padding:6px;">${d.remarks || ""}</td>
+      <td style="border:1px solid #e5e7eb;padding:6px;">${d.date || ""}</td>
+      <td style="border:1px solid #e5e7eb;padding:6px;">${d.checkedBy || ""}</td>
+    </tr>
+  `;
+}
+
+function generateStage0Form1(formData) {
+  if (!formData) return "";
+  return `
+    <div class="form-container">
+      <div class="company-header"><h2>SITE CONDITION AT TIME OF UNLOADING</h2></div>
+      <table class="form-table" style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+        <tbody>
+          <tr>
+            <td style="border:1px solid #e5e7eb;padding:6px;font-weight:bold;">VPES Representative</td>
+            <td style="border:1px solid #e5e7eb;padding:6px;">${formData.vpesRepresentative || ""}</td>
+            <td style="border:1px solid #e5e7eb;padding:6px;font-weight:bold;">Date</td>
+            <td style="border:1px solid #e5e7eb;padding:6px;">${formData.date || ""}</td>
+          </tr>
+          <tr>
+            <td style="border:1px solid #e5e7eb;padding:6px;font-weight:bold;">Customer Representative</td>
+            <td style="border:1px solid #e5e7eb;padding:6px;">${formData.customerRepresentative || ""}</td>
+            <td style="border:1px solid #e5e7eb;padding:6px;font-weight:bold;">Contact No.</td>
+            <td style="border:1px solid #e5e7eb;padding:6px;">${formData.contactNo || ""}</td>
+          </tr>
+        </tbody>
+      </table>
+      <h4 style="margin-bottom:8px;">Check Points</h4>
+      <table class="form-table" style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+        <thead>
+          <tr>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">Check Point</th>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">Status</th>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">Remarks</th>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">Date</th>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">Checked By</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${generateUnloadingCheckRow("Route condition", formData.routeCondition)}
+          ${generateUnloadingCheckRow("Site condition", formData.siteCondition)}
+          ${generateUnloadingCheckRow("Approach road", formData.approachRoad)}
+          ${generateUnloadingCheckRow("Boundary wall", formData.boundaryWall)}
+          ${generateUnloadingCheckRow("Security guard", formData.securityGuard)}
+        </tbody>
+      </table>
+      <div style="display:flex;gap:40px;margin-top:16px;">
+        <div><strong>VPES Signature Date:</strong> ${formData.vpesSignatureDate || ""}</div>
+        <div><strong>Customer Signature Date:</strong> ${formData.customerSignatureDate || ""}</div>
+      </div>
+      ${generatePhotoThumbnails(formData.photos)}
+    </div>
+  `;
+}
+
+function generateStage0Form2(formData) {
+  if (!formData) return "";
+  const rows = [
+    { label: "Entry to TSS/SP/SSP/SS", key: "entryToTSS" },
+    { label: "Trailer Movement suitable or not", key: "trailerMovement" },
+    { label: "Hydra/Boom Movement", key: "hydraBoomMovement" },
+    { label: "Unloading Point", key: "unloadingPoint" },
+    { label: "Date of Trailer Reached", key: "dateOfTrailerReached" },
+    { label: "Date of Unloading", key: "dateOfUnloading" },
+    { label: "Aesthetic / Any Remarks", key: "aestheticRemarks" },
+    { label: "Wheel Locking", key: "wheelLocking" },
+    { label: "All Seal Checks", key: "allSealChecks" },
+    { label: "After unloading photos", key: "afterUnloadingPhotos" },
+    { label: "TOG Level Check as per dispatch", key: "togLevelCheck" },
+    { label: "After All check TRS Covering photo", key: "trsCoveringPhoto" },
+    { label: "Sign and Stamp Copy of all documents as per dispatch", key: "signAndStampCopy" },
+  ];
+  return `
+    <div class="form-container">
+      <div class="company-header"><h2>MAIN TANK CHECKLIST</h2></div>
+      <table class="form-table" style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+        <thead>
+          <tr>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">Checklist Item</th>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">Status</th>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">Remarks</th>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">Date</th>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">Checked By</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r => generateUnloadingCheckRow(r.label, formData[r.key])).join("")}
+        </tbody>
+      </table>
+      <div style="display:flex;gap:40px;margin-top:16px;">
+        <div><strong>VPES Signature Date:</strong> ${formData.vpesSignatureDate || ""}</div>
+        <div><strong>Representative Signature Date:</strong> ${formData.representativeSignatureDate || ""}</div>
+      </div>
+      ${generatePhotoThumbnails(formData.photos)}
+    </div>
+  `;
+}
+
+function generateStage0Form3(formData) {
+  if (!formData) return "";
+  const inventory = Array.isArray(formData.accessoriesInventory) ? formData.accessoriesInventory : [];
+  return `
+    <div class="form-container">
+      <div class="company-header"><h2>PROTOCOL FOR ACCESSORIES CHECKING</h2></div>
+      <table class="form-table" style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+        <thead>
+          <tr>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">Checklist Item</th>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">Status</th>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">Remarks</th>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">Date</th>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">Checked By</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${generateUnloadingCheckRow("Accessories unloading point", formData.accessoriesUnloadingPoint)}
+          ${generateUnloadingCheckRow("Date of Unloading", formData.dateOfUnloading)}
+          ${generateUnloadingCheckRow("Storage Photos", formData.storagePhotos)}
+        </tbody>
+      </table>
+      <h4 style="margin-bottom:8px;">Accessories Inventory</h4>
+      <table class="form-table" style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+        <thead>
+          <tr>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">No</th>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">Packing Case No.</th>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">Material Description</th>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">Qty as per Challan</th>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">Qty as Received</th>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">Date</th>
+            <th style="border:1px solid #e5e7eb;padding:6px;background:#f3f4f6;">Checked By</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${inventory.map((row, i) => `
+            <tr>
+              <td style="border:1px solid #e5e7eb;padding:6px;text-align:center;">${i + 1}</td>
+              <td style="border:1px solid #e5e7eb;padding:6px;">${row.packingCaseNumber || ""}</td>
+              <td style="border:1px solid #e5e7eb;padding:6px;font-weight:bold;">${row.materialDescription || ""}</td>
+              <td style="border:1px solid #e5e7eb;padding:6px;">${row.qtyAsPerChallan || ""}</td>
+              <td style="border:1px solid #e5e7eb;padding:6px;">${row.qtyAsReceived || ""}</td>
+              <td style="border:1px solid #e5e7eb;padding:6px;">${row.date || ""}</td>
+              <td style="border:1px solid #e5e7eb;padding:6px;">${row.checkedBy || ""}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+      ${formData.remark ? `<div style="margin-bottom:16px;"><strong>Remark:</strong> ${formData.remark}</div>` : ""}
+      <div style="display:flex;gap:40px;margin-top:16px;">
+        <div><strong>VPES Signature Date:</strong> ${formData.vpesSignatureDate || ""}</div>
+        <div><strong>Customer Signature Date:</strong> ${formData.customerSignatureDate || ""}</div>
+      </div>
+      ${generatePhotoThumbnails(formData.photos)}
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Generate forms for a stage dynamically
 function generateStageContent(stageData, stageNumber, headerImage) {
   if (!stageData) return "";
@@ -3724,14 +3892,27 @@ function generateStageContent(stageData, stageNumber, headerImage) {
           ${headerImage ? `
           <div class="page-header">
             <img src="${headerImage}" alt="Header" />
+            <div style="text-align:center;font-size:0.85rem;font-weight:bold;color:#333;margin-top:4px;letter-spacing:0.5px;">
+              Vishvas Power Engineering Services (P) Ltd., Nagpur.
+            </div>
           </div>
           ` : ''}
           
-          <h2 style="text-align: center; color: #2d3748; margin: 20px 0;">Stage ${stageNumber} - ${formatLabel(formKey)}</h2>
+          <h2 style="text-align: center; color: #2d3748; margin: 20px 0;">Stage ${stageNumber === 0 ? "0 - Unloading Checklist" : stageNumber + " - " + formatLabel(formKey)}</h2>
       `;
 
+      // Stage 0 Forms (Unloading Checklist)
+      if (stageNumber === 0 && formKey === "form1") {
+        content += generateStage0Form1(formData);
+      }
+      else if (stageNumber === 0 && formKey === "form2") {
+        content += generateStage0Form2(formData);
+      }
+      else if (stageNumber === 0 && formKey === "form3") {
+        content += generateStage0Form3(formData);
+      }
       // Stage 1 Forms
-      if (stageNumber === 1 && formKey === "form1") {
+      else if (stageNumber === 1 && formKey === "form1") {
         content += generateStage1Form1(formData);
       } 
       else if (stageNumber === 1 && formKey === "form2") {
@@ -3837,6 +4018,68 @@ function generateStageContent(stageData, stageNumber, headerImage) {
   return content;
 }
 
+// Stage 0 only HTML template generator (for Unloading Checklist download)
+export function generateStage0HTMLTemplate(stage0Data, projectName, companyName) {
+  const cssPath = path.join(__dirname, "../public/form-styles.css");
+  let cssContent = "";
+  try {
+    if (fs.existsSync(cssPath)) cssContent = fs.readFileSync(cssPath, "utf8");
+  } catch (e) {}
+
+  const getImageAsBase64 = (imagePath) => {
+    try {
+      const fullPath = path.join(__dirname, "../src", imagePath);
+      if (fs.existsSync(fullPath)) {
+        const buf = fs.readFileSync(fullPath);
+        const mime = imagePath.toLowerCase().endsWith('.jpg') || imagePath.toLowerCase().endsWith('.jpeg') ? 'image/jpeg' : 'image/png';
+        return `data:${mime};base64,${buf.toString('base64')}`;
+      }
+    } catch (e) {}
+    return null;
+  };
+
+  const headerImage = getImageAsBase64('Header.jpg');
+  const form1 = stage0Data?.form1 ? generateStage0Form1(stage0Data.form1) : "";
+  const form2 = stage0Data?.form2 ? generateStage0Form2(stage0Data.form2) : "";
+  const form3 = stage0Data?.form3 ? generateStage0Form3(stage0Data.form3) : "";
+
+  const headerHtml = headerImage ? `
+    <div class="page-header">
+      <img src="${headerImage}" alt="Header" />
+      <div style="text-align:center;font-size:0.85rem;font-weight:bold;color:#333;margin-top:4px;letter-spacing:0.5px;">
+        Vishvas Power Engineering Services (P) Ltd., Nagpur.
+      </div>
+    </div>` : '';
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${projectName} - Unloading Checklist</title>
+  <style>
+    ${cssContent}
+    body { background: white !important; padding: 0; margin: 0; }
+    .form-container { background: white !important; box-shadow: none !important; margin-bottom: 40px; }
+    .page-header { width: 100%; margin-bottom: 20px; }
+    .page-header img { width: 100%; height: auto; max-height: 120px; object-fit: contain; }
+    .content-page { padding: 20px; page-break-before: always; }
+    .content-page:first-child { page-break-before: auto; }
+    @media print { * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }
+  </style>
+</head>
+<body>
+  <div class="content-page">
+    ${headerHtml}
+    <h2 style="text-align:center;color:#1e3a8a;margin:20px 0;">Unloading Checklist — Stage 0</h2>
+    <h3 style="text-align:center;color:#374151;margin-bottom:20px;">${projectName} — ${companyName}</h3>
+    ${form1}
+  </div>
+  <div class="content-page">${headerHtml}${form2}</div>
+  <div class="content-page">${headerHtml}${form3}</div>
+</body>
+</html>`;
+}
+
 // Main HTML template generator
 export function generateHTMLTemplate(data, projectName, companyName) {
   // Read CSS file
@@ -3871,11 +4114,11 @@ export function generateHTMLTemplate(data, projectName, companyName) {
   const lastPageImage = getImageAsBase64('LastPage.jpg');
   const headerImage = getImageAsBase64('Header.jpg');
 
-  // Generate content for all stages
+  // Generate content for all stages (including stage 0 - Unloading Checklist)
   let stagesContent = "";
   // VConnect data is stored under `vConnectData` (NOT TractionData)
   if (data.vConnectData) {
-    for (let i = 1; i <= 7; i++) {
+    for (let i = 0; i <= 7; i++) {
       const stageKey = `stage${i}`;
       if (data.vConnectData[stageKey]) {
         stagesContent += generateStageContent(data.vConnectData[stageKey], i, headerImage);
