@@ -1803,8 +1803,8 @@ const ETCAdminPanel = ({
     stageFlags[0] = false; // Stage 0 (Unloading)
     for (let i = 1; i <= totalStages; i++) stageFlags[i] = false;
 
-    const isAutoTransformer = selectedDepartment?.name === "Auto Transformer";
-    const initialStage = isAutoTransformer ? 0 : 1;
+    // All departments now start at Stage 0 (Unloading Checklist)
+    const initialStage = 0;
     const newProject = {
       id: Math.max(...companies.map((c) => c.id), 0) + 1,
       name: ProjectName,
