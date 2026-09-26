@@ -3965,7 +3965,15 @@ export function Stage4Form1({
         })
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for stage4Form1")
-          setFormData(response.data.data)
+          const incoming = response.data.data
+          setFormData((prev) => ({
+            ...prev,
+            ...incoming,
+            filtrationRecords:
+              incoming?.filtrationRecords?.length
+                ? incoming.filtrationRecords
+                : prev.filtrationRecords,
+          }))
         } else {
           console.log("There is no data in DB.")
         }
@@ -4152,7 +4160,15 @@ export function Stage4Form2({
         })
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for stage4Form2")
-          setFormData(response.data.data)
+          const incoming = response.data.data
+          setFormData((prev) => ({
+            ...prev,
+            ...incoming,
+            coolerBankRecords:
+              incoming?.coolerBankRecords?.length
+                ? incoming.coolerBankRecords
+                : prev.coolerBankRecords,
+          }))
         } else {
           console.log("There is no data in DB.")
         }
@@ -4482,7 +4498,15 @@ export function Stage4Form3({
         })
         if (response.data && response.data.data) {
           console.log("Data fetched from DB for stage4Form3")
-          setFormData(response.data.data)
+          const incoming = response.data.data
+          setFormData((prev) => ({
+            ...prev,
+            ...incoming,
+            combineRecords:
+              incoming?.combineRecords?.length
+                ? incoming.combineRecords
+                : prev.combineRecords,
+          }))
         } else {
           console.log("There is no data in DB.")
         }
